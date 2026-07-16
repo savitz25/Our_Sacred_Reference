@@ -47,6 +47,7 @@ export function VideoRoom({
   const [camOn, setCamOn] = useState(true);
   const [chatOpen, setChatOpen] = useState(false);
   const [recording, setRecording] = useState(false);
+  const [recordingBusy, setRecordingBusy] = useState(false);
   const [ended, setEnded] = useState(false);
   const [ending, setEnding] = useState(false);
   const [connecting, setConnecting] = useState(true);
@@ -55,6 +56,47 @@ export function VideoRoom({
   const [statusMsg, setStatusMsg] = useState("Connecting…");
   const [room, setRoom] = useState<Room | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const startEgress = useCallback(async () => {
+    setRecordingBusy(true);
+    try {
+      const res = await fetch("/api/livekit/recording/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId }),
+      });
+      const data = await res.json();
+      if (data.started) {
+        setRecording(true);
+        setStatusMsg("Recording via LiveKit Egress…");
+      } else if (data.demo) {
+        setRecording(false);
+        setStatusMsg(data.reason || "Demo mode — egress not started");
+      } else if (data.reason) {
+        setStatusMsg(data.reason);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setRecordingBusy(false);
+    }
+  }, [sessionId]);
+
+  const stopEgress = useCallback(async () => {
+    setRecordingBusy(true);
+    try {
+      await fetch("/api/livekit/recording/stop", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId }),
+      });
+      setRecording(false);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setRecordingBusy(false);
+    }
+  }, [sessionId]);
 
   useEffect(() => {
     let activeRoom: Room | null = null;
@@ -99,6 +141,8 @@ export function VideoRoom({
             setLivekitReady(true);
             setConnecting(false);
             setStatusMsg("Connected");
+            // Auto-start RoomCompositeEgress for real recordings
+            void startEgress();
           }
         });
 
@@ -106,7 +150,6 @@ export function VideoRoom({
         await r.localParticipant.setCameraEnabled(true);
         await r.localParticipant.setMicrophoneEnabled(true);
 
-        // Attach remote videos
         r.on(RoomEvent.TrackSubscribed, (track, _pub, participant) => {
           if (track.kind === Track.Kind.Video) {
             const el = track.attach();
@@ -137,7 +180,7 @@ export function VideoRoom({
       cancelled = true;
       activeRoom?.disconnect();
     };
-  }, [sessionId]);
+  }, [sessionId, startEgress]);
 
   const toggleMic = useCallback(async () => {
     const next = !micOn;
@@ -151,9 +194,21 @@ export function VideoRoom({
     if (room) await room.localParticipant.setCameraEnabled(next);
   }, [camOn, room]);
 
+  async function handleRecordToggle() {
+    if (recordingBusy || demoMode) return;
+    if (recording) {
+      await stopEgress();
+    } else {
+      await startEgress();
+    }
+  }
+
   async function handleLeave() {
     setEnding(true);
     try {
+      if (recording && !demoMode) {
+        await stopEgress();
+      }
       room?.disconnect();
       await endSessionAndQueueProcessing(sessionId);
       setEnded(true);
@@ -175,12 +230,13 @@ export function VideoRoom({
             Session complete
           </h2>
           <p className="text-ink-soft leading-relaxed mb-2">
-            Your video is being automatically processed, categorized, and added
-            to your private library.
+            Your video is being processed via LiveKit Egress, uploaded to your
+            private library, and (when FFmpeg is available) trimmed and
+            normalized.
           </p>
           <p className="text-sm text-muted mb-8">
-            Post-session pipeline queued (storage path + metadata). Connect
-            LiveKit egress and FFmpeg worker for full media processing.
+            You&apos;ll receive an email when the recording is ready (if Resend
+            is configured).
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button href="/portal/session-complete" variant="gold">
@@ -215,7 +271,7 @@ export function VideoRoom({
           {recording && (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500/20 px-3 py-1 text-xs text-red-200">
               <span className="h-2 w-2 rounded-full bg-red-400 animate-pulse" />
-              Recording
+              Egress recording
             </span>
           )}
           <button
@@ -320,16 +376,20 @@ export function VideoRoom({
         >
           <MessageSquare className="h-5 w-5" />
         </ControlBtn>
-        {isPractitioner && (
+        {(isPractitioner || livekitReady) && !demoMode && (
           <ControlBtn
             active={recording}
-            onClick={() => setRecording((v) => !v)}
-            label="Toggle recording"
+            onClick={handleRecordToggle}
+            label={recording ? "Stop recording" : "Start recording"}
             className="hidden sm:flex"
           >
-            <Circle
-              className={cn("h-5 w-5", recording && "text-red-400")}
-            />
+            {recordingBusy ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <Circle
+                className={cn("h-5 w-5", recording && "text-red-400")}
+              />
+            )}
           </ControlBtn>
         )}
         <button

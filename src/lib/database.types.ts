@@ -86,6 +86,8 @@ export interface Database {
           recording_enabled: boolean;
           informed_consent_at: string | null;
           informed_consent_version: string | null;
+          egress_id: string | null;
+          recording_path: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -104,6 +106,8 @@ export interface Database {
           recording_enabled?: boolean;
           informed_consent_at?: string | null;
           informed_consent_version?: string | null;
+          egress_id?: string | null;
+          recording_path?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -122,6 +126,8 @@ export interface Database {
           recording_enabled?: boolean;
           informed_consent_at?: string | null;
           informed_consent_version?: string | null;
+          egress_id?: string | null;
+          recording_path?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -176,6 +182,7 @@ export interface Database {
           transcript_summary: string | null;
           status: VideoStatus;
           thumbnail_path: string | null;
+          egress_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -191,6 +198,7 @@ export interface Database {
           transcript_summary?: string | null;
           status?: VideoStatus;
           thumbnail_path?: string | null;
+          egress_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -206,6 +214,7 @@ export interface Database {
           transcript_summary?: string | null;
           status?: VideoStatus;
           thumbnail_path?: string | null;
+          egress_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };

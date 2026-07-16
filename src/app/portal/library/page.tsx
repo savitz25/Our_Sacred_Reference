@@ -46,6 +46,7 @@ export default async function PortalLibraryPage() {
           notes: v.transcript_summary ?? undefined,
           status: v.status,
           publicUrl: v.public_url,
+          storagePath: v.storage_path,
         }))}
       />
     </div>

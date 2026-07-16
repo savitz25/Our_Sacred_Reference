@@ -20,7 +20,10 @@ Supabase project: `https://mbboakpdxgquntlohlix.supabase.co`
 | Booking calendar → `sessions` table | ✅ |
 | Portal dashboard & library (real data) | ✅ |
 | LiveKit video rooms | ✅ when env set; demo mode otherwise |
-| Post-session pipeline webhook | ✅ metadata + optional Resend |
+| **LiveKit RoomComposite Egress → Supabase Storage** | ✅ |
+| Private signed URLs in session library | ✅ |
+| Optional FFmpeg silence trim + loudnorm | ✅ when `ffmpeg` on PATH |
+| Post-session pipeline + Resend email | ✅ |
 | **Phase 3 legal disclaimers + consent flow** | ✅ |
 | Terms / Privacy Policy / Informed Consent pages | ✅ |
 | Stripe payments | ⏳ TODO |
@@ -60,15 +63,29 @@ Copy the root template to a local env file and fill in your Supabase keys:
 cp .env.example .env.local
 ```
 
-See [`.env.example`](./.env.example) for required variables:
+See [`.env.example`](./.env.example) for all variables.
+
+**Required (app + auth)**
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
+- `NEXT_PUBLIC_SITE_URL`
 
-Optional LiveKit and Resend keys are commented in `.env.example` — uncomment when ready.
+**Required for real video + recording**
 
-This project’s Supabase URL is typically `https://mbboakpdxgquntlohlix.supabase.co` (use your dashboard values for the keys). You may also set `NEXT_PUBLIC_SITE_URL=http://localhost:3000` for auth redirects.
+- `LIVEKIT_API_KEY`
+- `LIVEKIT_API_SECRET`
+- `NEXT_PUBLIC_LIVEKIT_URL` (e.g. `wss://xxx.livekit.cloud`)
+- `SUPABASE_S3_ACCESS_KEY` / `SUPABASE_S3_SECRET_KEY`  
+  Create under Supabase → **Storage → S3 Access Keys** so LiveKit Egress can write to the private `session-recordings` bucket.
+
+**Optional**
+
+- `RESEND_API_KEY` — email when a recording is ready  
+- FFmpeg on the server PATH — silence trim + loudnorm post-process (skipped on plain Vercel serverless)
+
+This project’s Supabase URL is typically `https://mbboakpdxgquntlohlix.supabase.co`.
 
 > Vercel: set the same variables in Project → Settings → Environment Variables.
 
@@ -77,8 +94,9 @@ This project’s Supabase URL is typically `https://mbboakpdxgquntlohlix.supabas
 1. Open [Supabase SQL Editor](https://supabase.com/dashboard/project/mbboakpdxgquntlohlix/sql)
 2. Paste and run: `supabase/migrations/001_initial_schema.sql`
 3. Paste and run: `supabase/migrations/002_consents.sql` (Informed Consent records)
-4. Confirm tables: `profiles`, `sessions`, `videos`, `availability_slots`, `consents`
-5. Confirm storage bucket: `session-recordings` (private)
+4. Paste and run: `supabase/migrations/003_recording_egress.sql` (`egress_id`, `recording_path`)
+5. Confirm tables: `profiles`, `sessions`, `videos`, `availability_slots`, `consents`
+6. Confirm storage bucket: `session-recordings` (private)
 
 Optional — set Michele as practitioner after she signs up:
 
@@ -88,7 +106,20 @@ set role = 'practitioner'
 where email = 'her-email@example.com';
 ```
 
-### 4. Supabase Auth settings
+### 4. LiveKit Egress setup (recordings)
+
+1. Create a project at [LiveKit Cloud](https://cloud.livekit.io) (or self-host).
+2. Copy API Key, Secret, and WebSocket URL into `.env.local` / Vercel.
+3. In Supabase, create **S3 access keys** and set `SUPABASE_S3_*` env vars.
+4. Ensure bucket `session-recordings` exists and is **private** (migration `001` creates it).
+5. In LiveKit Cloud → **Settings → Webhooks**, add:  
+   `https://your-domain/api/webhooks/livekit-egress`  
+   (events: `egress_ended`, optionally `egress_updated`).
+6. Flow: join session → auto-start **RoomCompositeEgress** → leave → stop egress → file lands in Supabase Storage → optional FFmpeg → `videos` row `status=ready` → Resend email → library plays via **signed URL** (`/api/videos/[id]/url`).
+
+Without LiveKit keys the UI stays in **demo mode** (no real media).
+
+### 5. Supabase Auth settings
 
 In Authentication → URL configuration:
 

@@ -2,8 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
-import { Play, Search, Calendar, Loader2 } from "lucide-react";
+import { Play, Search, Calendar, Loader2, X } from "lucide-react";
 import { videoCategories } from "@/lib/content";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
@@ -19,6 +18,7 @@ export type LibraryVideo = {
   notes?: string;
   status?: string;
   publicUrl?: string | null;
+  storagePath?: string | null;
 };
 
 interface VideoLibraryGridProps {
@@ -28,6 +28,13 @@ interface VideoLibraryGridProps {
 export function VideoLibraryGrid({ videos }: VideoLibraryGridProps) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string>("All");
+  const [playing, setPlaying] = useState<{
+    id: string;
+    title: string;
+    url: string;
+  } | null>(null);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [playError, setPlayError] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     return videos.filter((v) => {
@@ -42,6 +49,25 @@ export function VideoLibraryGrid({ videos }: VideoLibraryGridProps) {
       return matchesCategory && matchesQuery;
     });
   }, [videos, query, category]);
+
+  async function openVideo(video: LibraryVideo) {
+    if (video.status === "processing") return;
+    setPlayError(null);
+    setLoadingId(video.id);
+    try {
+      const res = await fetch(`/api/videos/${video.id}/url`);
+      const data = await res.json();
+      if (!res.ok || !data.url) {
+        setPlayError(data.error || "Unable to load private recording.");
+        return;
+      }
+      setPlaying({ id: video.id, title: video.title, url: data.url });
+    } catch {
+      setPlayError("Failed to fetch signed URL.");
+    } finally {
+      setLoadingId(null);
+    }
+  }
 
   return (
     <div>
@@ -85,6 +111,15 @@ export function VideoLibraryGrid({ videos }: VideoLibraryGridProps) {
         ))}
       </div>
 
+      {playError && (
+        <p
+          className="mb-4 rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-700"
+          role="alert"
+        >
+          {playError}
+        </p>
+      )}
+
       {filtered.length === 0 ? (
         <p className="text-center text-muted py-16">
           {videos.length === 0
@@ -94,19 +129,65 @@ export function VideoLibraryGrid({ videos }: VideoLibraryGridProps) {
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((video) => (
-            <VideoCard key={video.id} video={video} />
+            <VideoCard
+              key={video.id}
+              video={video}
+              loading={loadingId === video.id}
+              onPlay={() => openVideo(video)}
+            />
           ))}
+        </div>
+      )}
+
+      {playing && (
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-forest-deep/90 p-4"
+          role="dialog"
+          aria-modal
+          aria-label={playing.title}
+        >
+          <div className="w-full max-w-4xl rounded-2xl overflow-hidden bg-black shadow-elevated">
+            <div className="flex items-center justify-between px-4 py-3 bg-forest text-cream">
+              <p className="font-serif text-lg truncate pr-4">{playing.title}</p>
+              <button
+                type="button"
+                onClick={() => setPlaying(null)}
+                className="rounded-full p-2 hover:bg-cream/10"
+                aria-label="Close player"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <video
+              src={playing.url}
+              controls
+              autoPlay
+              className="w-full aspect-video bg-black"
+              controlsList="nodownload"
+            >
+              Your browser does not support video playback.
+            </video>
+            <p className="px-4 py-2 text-xs text-cream/50 bg-forest-deep">
+              Private signed URL · expires in 1 hour · owner-only access
+            </p>
+          </div>
         </div>
       )}
     </div>
   );
 }
 
-function VideoCard({ video }: { video: LibraryVideo }) {
+function VideoCard({
+  video,
+  loading,
+  onPlay,
+}: {
+  video: LibraryVideo;
+  loading: boolean;
+  onPlay: () => void;
+}) {
   const processing = video.status === "processing";
-  const href = video.publicUrl
-    ? video.publicUrl
-    : `/portal/session/${video.sessionId}`;
+  const failed = video.status === "failed";
 
   return (
     <article className="group rounded-2xl border border-border bg-white overflow-hidden shadow-soft transition-all duration-300 hover:shadow-elevated hover:-translate-y-0.5">
@@ -124,19 +205,29 @@ function VideoCard({ video }: { video: LibraryVideo }) {
             <Loader2 className="h-8 w-8 animate-spin mb-2" />
             <span className="text-xs">Processing</span>
           </div>
+        ) : failed ? (
+          <div className="absolute inset-0 flex items-center justify-center text-cream text-sm px-4 text-center">
+            Recording failed
+          </div>
         ) : (
-          <Link
-            href={href}
+          <button
+            type="button"
+            onClick={onPlay}
             className="absolute inset-0 flex items-center justify-center"
-            aria-label={`Open ${video.title}`}
-            {...(video.publicUrl
-              ? { target: "_blank", rel: "noopener noreferrer" }
-              : {})}
+            aria-label={`Play ${video.title}`}
           >
             <span className="flex h-14 w-14 items-center justify-center rounded-full bg-cream/95 text-forest shadow-elevated transition-transform group-hover:scale-110">
-              <Play className="h-6 w-6 ml-0.5" fill="currentColor" aria-hidden />
+              {loading ? (
+                <Loader2 className="h-6 w-6 animate-spin" />
+              ) : (
+                <Play
+                  className="h-6 w-6 ml-0.5"
+                  fill="currentColor"
+                  aria-hidden
+                />
+              )}
             </span>
-          </Link>
+          </button>
         )}
         <span className="absolute bottom-3 right-3 rounded-md bg-forest-deep/80 px-2 py-0.5 text-xs text-cream">
           {video.duration}
