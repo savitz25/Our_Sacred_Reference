@@ -93,7 +93,7 @@ export default async function PortalDashboardPage() {
               size="lg"
             >
               <Video className="h-5 w-5" aria-hidden />
-              Join Secure Video Session
+              Start Session
             </Button>
           </div>
         </Card>
@@ -144,7 +144,7 @@ export default async function PortalDashboardPage() {
                         size="sm"
                         variant="secondary"
                       >
-                        Join
+                        Start Session
                       </Button>
                     ) : (
                       <Badge variant="outline">Scheduled</Badge>

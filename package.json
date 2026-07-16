@@ -11,6 +11,7 @@
     "vercel:env-checklist": "node scripts/push-vercel-env.mjs"
   },
   "dependencies": {
+    "@livekit/track-processors": "^0.7.2",
     "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.110.7",
     "clsx": "^2.1.1",

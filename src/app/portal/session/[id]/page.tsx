@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
-import { VideoRoom } from "@/components/portal/VideoRoom";
-import { SessionEarlyWait } from "@/components/portal/SessionEarlyWait";
+import { SessionLobby } from "@/components/portal/SessionLobby";
 import { SessionEnded } from "@/components/portal/SessionEnded";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -41,19 +40,6 @@ export default async function SessionPage({
     durationMinutes: session.duration_minutes ?? 60,
   });
 
-  // Practitioners may enter early to prepare the room
-  if (timing.state === "early" && !isPractitioner) {
-    return (
-      <SessionEarlyWait
-        sessionId={session.id}
-        sessionTitle={session.title}
-        scheduledAt={session.scheduled_at}
-        durationMinutes={session.duration_minutes ?? 60}
-        practitionerName="Michele"
-      />
-    );
-  }
-
   if (timing.state === "ended" && !isPractitioner) {
     return (
       <SessionEnded
@@ -63,12 +49,17 @@ export default async function SessionPage({
     );
   }
 
-  // Live room — stays on Sacred Reference (no external redirects)
+  // Lobby with prominent Start Session — early clicks open countdown wait;
+  // open window (or practitioner prep) enters the LiveKit room.
   return (
-    <VideoRoom
+    <SessionLobby
       sessionId={session.id}
       sessionTitle={session.title}
+      scheduledAt={session.scheduled_at}
+      durationMinutes={session.duration_minutes ?? 60}
       isPractitioner={isPractitioner}
+      practitionerName="Michele"
+      initialTimingState={timing.state}
     />
   );
 }
