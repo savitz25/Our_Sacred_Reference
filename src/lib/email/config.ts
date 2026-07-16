@@ -42,13 +42,33 @@ export function appointmentRecipients(customerEmail: string): string[] {
 }
 
 export function getSiteUrl(): string {
-  if (process.env.NEXT_PUBLIC_SITE_URL) {
-    return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
+  let site =
+    process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, "") ||
+    (process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL.replace(/\/$/, "")}`
+      : "http://localhost:3000");
+
+  // Never send clients to unrelated domains from transactional email
+  if (/movetrusthub/i.test(site)) {
+    site = "https://www.oursacredreference.com";
   }
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL.replace(/\/$/, "")}`;
+  // Prefer canonical production host when a bare vercel.app URL is set
+  if (
+    process.env.NODE_ENV === "production" &&
+    site.includes("vercel.app") &&
+    !site.includes("localhost")
+  ) {
+    // Keep vercel.app if custom domain not configured; otherwise prefer env
+    // only rewrite if explicit production domain is set via fallback
+    const preferred = "https://www.oursacredreference.com";
+    if (process.env.NEXT_PUBLIC_SITE_URL?.includes("oursacredreference")) {
+      site = process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
+    } else if (!process.env.NEXT_PUBLIC_SITE_URL) {
+      site = preferred;
+    }
   }
-  return "http://localhost:3000";
+
+  return site;
 }
 
 export const BRAND = {

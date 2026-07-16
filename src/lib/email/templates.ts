@@ -124,12 +124,12 @@ export function bookingConfirmationHtml(input: {
           <td style="padding:16px 18px;font-size:14px;line-height:1.6;">
             <strong style="color:${BRAND.forest};">${escapeHtml(input.sessionTitle)}</strong><br/>
             <span style="color:${BRAND.muted};">${escapeHtml(when)}</span><br/>
-            <span style="color:${BRAND.muted};">${input.durationMinutes} minutes · Online video</span>
+            <span style="color:${BRAND.muted};">${input.durationMinutes} minutes · Online video on Sacred Reference</span>
           </td>
         </tr>
       </table>
       <p style="margin:0 0 14px;">
-        Join from your portal when the session time approaches. You can also use this direct link:
+        Use this link when it is time. If you open it early, you will see a peaceful waiting page with a countdown—you will not leave Sacred Reference.
       </p>
       <p style="margin:0 0 14px;">
         <a href="${escapeHtml(join)}" style="color:${BRAND.teal};word-break:break-all;">${escapeHtml(join)}</a>
@@ -178,12 +178,12 @@ export function sessionReminderHtml(input: {
           <td style="padding:16px 18px;font-size:14px;line-height:1.6;">
             <strong style="color:${BRAND.forest};">${escapeHtml(input.sessionTitle)}</strong><br/>
             <span style="color:${BRAND.muted};">${escapeHtml(when)}</span><br/>
-            <span style="color:${BRAND.muted};">${input.durationMinutes} minutes</span>
+            <span style="color:${BRAND.muted};">${input.durationMinutes} minutes · Secure video on Sacred Reference</span>
           </td>
         </tr>
       </table>
       <p style="margin:0 0 14px;">
-        Find a quiet space, settle your nervous system, and join from the portal when ready.
+        Find a quiet space and settle your nervous system. If you open the link early, a countdown will welcome you until the room opens (about 15 minutes before start).
       </p>
       <p style="margin:0;">
         With care,<br/>
