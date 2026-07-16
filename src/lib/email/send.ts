@@ -2,12 +2,14 @@ import { Resend } from "resend";
 import {
   appointmentRecipients,
   getFromAddress,
+  getPractitionerNotifyEmail,
   getResendApiKey,
   getSiteUrl,
   isResendConfigured,
 } from "@/lib/email/config";
 import {
   bookingConfirmationHtml,
+  practitionerSessionReminderHtml,
   recordingReadyHtml,
   sessionReminderHtml,
 } from "@/lib/email/templates";
@@ -102,7 +104,8 @@ export async function sendBookingConfirmationEmail(input: {
 }
 
 /**
- * Pre-session reminder — customer + Michele (appointment notification).
+ * ~1 hour pre-session reminder.
+ * Sends personalized emails to the client and Michele (admin) separately.
  */
 export async function sendSessionReminderEmail(input: {
   to: string;
@@ -111,23 +114,104 @@ export async function sendSessionReminderEmail(input: {
   scheduledAt: Date;
   durationMinutes: number;
   sessionId: string;
-  hoursUntil: number;
+  /** @deprecated prefer minutesUntil */
+  hoursUntil?: number;
+  minutesUntil?: number;
+  notes?: string | null;
+  /** When false, skip client email but still notify Michele */
+  notifyClient?: boolean;
 }): Promise<SendResult> {
   if (!isResendConfigured()) {
     return { sent: false, reason: "RESEND_API_KEY not set" };
   }
 
-  const recipients = appointmentRecipients(input.to);
+  const minutesUntil =
+    input.minutesUntil ??
+    (input.hoursUntil != null ? Math.round(input.hoursUntil * 60) : 60);
 
-  return sendEmail({
-    to: recipients,
-    subject: `Reminder: ${input.sessionTitle} soon`,
-    html: sessionReminderHtml(input),
-    tags: [
-      { name: "type", value: "session_reminder" },
-      { name: "session_id", value: input.sessionId.slice(0, 36) },
-    ],
+  const whenShort = input.scheduledAt.toLocaleString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
   });
+
+  const sessionIdTag = input.sessionId.slice(0, 36);
+  const recipients: string[] = [];
+  const errors: string[] = [];
+  let anySent = false;
+  let lastId: string | undefined;
+
+  // 1) Client reminder
+  if (input.notifyClient !== false) {
+    const clientResult = await sendEmail({
+      to: input.to,
+      subject: `In about 1 hour: ${input.sessionTitle}`,
+      html: sessionReminderHtml({
+        fullName: input.fullName,
+        sessionTitle: input.sessionTitle,
+        scheduledAt: input.scheduledAt,
+        durationMinutes: input.durationMinutes,
+        sessionId: input.sessionId,
+        minutesUntil,
+        notes: input.notes,
+      }),
+      tags: [
+        { name: "type", value: "session_reminder_1h" },
+        { name: "role", value: "client" },
+        { name: "session_id", value: sessionIdTag },
+      ],
+    });
+    if (clientResult.sent) {
+      anySent = true;
+      lastId = clientResult.id;
+      recipients.push(...(clientResult.recipients ?? [input.to]));
+    } else {
+      errors.push(`client: ${clientResult.reason}`);
+    }
+  }
+
+  // 2) Michele / practitioner reminder (always for appointment ops)
+  const practitioner = getPractitionerNotifyEmail().toLowerCase();
+  const clientEmail = input.to.trim().toLowerCase();
+  if (practitioner && practitioner !== clientEmail) {
+    const pracResult = await sendEmail({
+      to: practitioner,
+      subject: `Session in ~1h: ${input.fullName} — ${whenShort}`,
+      html: practitionerSessionReminderHtml({
+        clientName: input.fullName || "Client",
+        clientEmail: input.to,
+        sessionTitle: input.sessionTitle,
+        scheduledAt: input.scheduledAt,
+        durationMinutes: input.durationMinutes,
+        sessionId: input.sessionId,
+        minutesUntil,
+        notes: input.notes,
+      }),
+      tags: [
+        { name: "type", value: "session_reminder_1h" },
+        { name: "role", value: "practitioner" },
+        { name: "session_id", value: sessionIdTag },
+      ],
+    });
+    if (pracResult.sent) {
+      anySent = true;
+      lastId = pracResult.id ?? lastId;
+      recipients.push(...(pracResult.recipients ?? [practitioner]));
+    } else {
+      errors.push(`practitioner: ${pracResult.reason}`);
+    }
+  }
+
+  if (anySent) {
+    return { sent: true, id: lastId, recipients: [...new Set(recipients)] };
+  }
+
+  return {
+    sent: false,
+    reason: errors.join("; ") || "no recipients",
+  };
 }
 
 /**

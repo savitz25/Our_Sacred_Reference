@@ -103,6 +103,7 @@ In [Supabase SQL Editor](https://supabase.com/dashboard/project/mbboakpdxgquntlo
 3. `supabase/migrations/003_recording_egress.sql`
 4. `supabase/migrations/004_admin_profile_select.sql`
 5. `supabase/migrations/005_availability_blocks.sql` (admin calendar blocks)
+6. `supabase/migrations/006_session_reminder_1h.sql` (1-hour reminder de-dupe column)
 
 **Michele admin account** (password via env only — never commit):
 
@@ -193,12 +194,37 @@ PRACTITIONER_NOTIFY_EMAIL=michele@oursacredreference.com
 ```
 
 4. Restart / redeploy.
-5. Test:
+5. Set `CRON_SECRET` on Vercel (required in production). Vercel Cron injects
+   `Authorization: Bearer <CRON_SECRET>` automatically.
+6. Apply migration `006_session_reminder_1h.sql` in Supabase SQL Editor
+   (adds `reminder_1h_sent_at` for reliable de-dupe).
+7. Test:
    - Book a discovery session → **booking confirmation** to **customer + Michele**
-   - Session reminder cron → same dual recipients
+   - `GET /api/cron/session-reminders` with Bearer secret → 1h dual reminders
    - Recording ready → **customer only** (library + private link)
-6. Optional reminders: call `POST /api/cron/session-reminders` hourly with  
-   `Authorization: Bearer <CRON_SECRET>` (set `CRON_SECRET` in env).
+
+### 1-hour session reminders
+
+| Item | Detail |
+|------|--------|
+| Endpoint | `GET`/`POST` `/api/cron/session-reminders` |
+| Vercel Cron | every **15 minutes** (`vercel.json` → `*/15 * * * *`) |
+| Window | sessions starting in **30–75 minutes** |
+| Client email | Personalized “starts in about 1 hour” + join / Start Session link |
+| Michele email | Client name, email, notes, session room + admin links |
+| From | `michele@oursacredreference.com` (`RESEND_FROM_EMAIL`) |
+| De-dupe | `sessions.reminder_1h_sent_at` + notes flag `[reminder_1h_sent]` |
+
+Manual run (local or smoke test):
+
+```bash
+curl -H "Authorization: Bearer $CRON_SECRET" \
+  "https://www.oursacredreference.com/api/cron/session-reminders"
+```
+
+> **Vercel Hobby:** sub-daily crons require Pro. On Hobby, either upgrade or hit the
+> endpoint every 15 minutes from an external scheduler (cron-job.org, EasyCron, etc.)
+> with the same Bearer secret.
 
 Until the domain is verified, Resend may only allow sends to your account email; use their test mode or verify DNS for production.
 
@@ -252,6 +278,7 @@ src/
     actions/           # auth, booking, profile, sessions
     api/
       health/          # deploy readiness
+      cron/            # session-reminders (1h dual email)
       livekit/         # token + recording start/stop
       videos/[id]/url  # private signed URLs
       webhooks/        # session-ended + livekit-egress
@@ -295,15 +322,16 @@ SUPABASE_S3_ACCESS_KEY
 SUPABASE_S3_SECRET_KEY
 ```
 
-**Email (Resend):** `RESEND_API_KEY`, `RESEND_FROM_EMAIL`  
-Optional: S3 endpoint overrides, `CRON_SECRET` for session reminders.
+**Email (Resend):** `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `PRACTITIONER_NOTIFY_EMAIL`  
+**Cron:** `CRON_SECRET` (required in production for `/api/cron/session-reminders`)  
+Optional: S3 endpoint overrides.
 
 ### Transactional emails (Resend)
 
 | Trigger | Recipients | Email |
 |---------|------------|--------|
 | Successful `/book-session` | Customer **+** Michele | Booking confirmation |
-| Cron `/api/cron/session-reminders` | Customer **+** Michele | Session reminder (~24h) |
+| Cron `/api/cron/session-reminders` (every 15m) | Customer **and** Michele (separate personalized) | **~1 hour** pre-session reminder |
 | Recording ready (egress pipeline) | Customer only | Library + optional 48h signed URL |
 
 **From:** `michele@oursacredreference.com` (override with `RESEND_FROM_EMAIL`).  
@@ -316,7 +344,6 @@ Templates: forest/gold branded HTML in `src/lib/email/templates.ts`.
 - Stripe paid sessions  
 - HIPAA/BAA path only if clinical positioning changes  
 - Practitioner multi-client admin UI  
-- Welcome/reminder email templates  
 
 ---
 

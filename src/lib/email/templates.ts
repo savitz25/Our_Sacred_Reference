@@ -146,53 +146,171 @@ export function bookingConfirmationHtml(input: {
   });
 }
 
+function formatSessionWhen(d: Date): string {
+  return d.toLocaleString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
+  });
+}
+
+/** Client-facing ~1 hour pre-session reminder */
 export function sessionReminderHtml(input: {
   fullName: string;
   sessionTitle: string;
   scheduledAt: Date;
   durationMinutes: number;
   sessionId: string;
-  hoursUntil: number;
+  minutesUntil?: number;
+  hoursUntil?: number;
+  notes?: string | null;
 }): string {
   const site = getSiteUrl();
-  const when = input.scheduledAt.toLocaleString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  const when = formatSessionWhen(input.scheduledAt);
   const first = input.fullName.split(" ")[0] || "there";
   const join = `${site}/portal/session/${input.sessionId}`;
+  const minutes =
+    input.minutesUntil ??
+    (input.hoursUntil != null ? input.hoursUntil * 60 : 60);
+  const timePhrase =
+    minutes <= 75
+      ? "about 1 hour"
+      : `about ${Math.max(1, Math.round(minutes / 60))} hour(s)`;
+
+  const clientNotes = sanitizeClientFacingNotes(input.notes);
+  const notesBlock = clientNotes
+    ? `<p style="margin:0 0 14px;font-size:14px;color:${BRAND.muted};">
+         <strong style="color:${BRAND.forest};">Your notes:</strong><br/>
+         ${escapeHtml(clientNotes)}
+       </p>`
+    : "";
 
   return layout({
-    preheader: `Reminder: ${input.sessionTitle} in about ${input.hoursUntil} hour(s)`,
-    title: "Gentle reminder: your session is soon",
+    preheader: `Reminder: ${input.sessionTitle} in ${timePhrase}`,
+    title: "Your session begins in about 1 hour",
     bodyHtml: `
       <p style="margin:0 0 14px;">Dear ${escapeHtml(first)},</p>
       <p style="margin:0 0 14px;">
-        This is a soft reminder that your Sacred Reference session is coming up.
+        A gentle reminder that your Sacred Reference session begins in
+        <strong style="color:${BRAND.forest};">${escapeHtml(timePhrase)}</strong>.
+        Take a few breaths, find a quiet space, and arrive when you are ready.
       </p>
       <table role="presentation" width="100%" style="background:${BRAND.cream};border-radius:12px;margin:16px 0;">
         <tr>
           <td style="padding:16px 18px;font-size:14px;line-height:1.6;">
             <strong style="color:${BRAND.forest};">${escapeHtml(input.sessionTitle)}</strong><br/>
             <span style="color:${BRAND.muted};">${escapeHtml(when)}</span><br/>
-            <span style="color:${BRAND.muted};">${input.durationMinutes} minutes · Secure video on Sacred Reference</span>
+            <span style="color:${BRAND.muted};">${input.durationMinutes} minutes · Secure encrypted video on Sacred Reference</span>
+          </td>
+        </tr>
+      </table>
+      ${notesBlock}
+      <p style="margin:0 0 14px;">
+        Use the button below to open your session room. If you arrive early, a serene countdown will hold the space until the join window opens (about 15 minutes before start)—you will stay on Sacred Reference the whole time.
+      </p>
+      <p style="margin:0 0 14px;font-size:13px;color:${BRAND.muted};word-break:break-all;">
+        Direct link: <a href="${escapeHtml(join)}" style="color:${BRAND.teal};">${escapeHtml(join)}</a>
+      </p>
+      <p style="margin:0;">
+        With care,<br/>
+        <em style="color:${BRAND.forest};">Michele &amp; Sacred Reference</em>
+      </p>
+    `,
+    ctaLabel: "Start Session",
+    ctaHref: join,
+    footerNote:
+      "Need to reschedule? Reply to this email or sign in to your portal.",
+  });
+}
+
+/** Practitioner (Michele) ~1 hour admin reminder — personalized with client details */
+export function practitionerSessionReminderHtml(input: {
+  clientName: string;
+  clientEmail: string;
+  sessionTitle: string;
+  scheduledAt: Date;
+  durationMinutes: number;
+  sessionId: string;
+  minutesUntil?: number;
+  notes?: string | null;
+}): string {
+  const site = getSiteUrl();
+  const when = formatSessionWhen(input.scheduledAt);
+  const join = `${site}/portal/session/${input.sessionId}`;
+  const admin = `${site}/admin`;
+  const minutes = input.minutesUntil ?? 60;
+  const timePhrase =
+    minutes <= 75
+      ? "about 1 hour"
+      : `about ${Math.max(1, Math.round(minutes / 60))} hour(s)`;
+
+  const sessionNotes = sanitizeClientFacingNotes(input.notes);
+  const notesBlock = sessionNotes
+    ? `<p style="margin:12px 0 0;font-size:13px;color:${BRAND.muted};">
+         <strong style="color:${BRAND.forest};">Session notes:</strong><br/>
+         ${escapeHtml(sessionNotes)}
+       </p>`
+    : "";
+
+  return layout({
+    preheader: `In ${timePhrase}: ${input.sessionTitle} with ${input.clientName}`,
+    title: "Upcoming session in about 1 hour",
+    bodyHtml: `
+      <p style="margin:0 0 14px;">Dear Michele,</p>
+      <p style="margin:0 0 14px;">
+        You have a session starting in
+        <strong style="color:${BRAND.forest};">${escapeHtml(timePhrase)}</strong>.
+        A matching reminder has been sent to your client.
+      </p>
+      <table role="presentation" width="100%" style="background:${BRAND.cream};border-radius:12px;margin:16px 0;">
+        <tr>
+          <td style="padding:16px 18px;font-size:14px;line-height:1.6;">
+            <strong style="color:${BRAND.forest};">${escapeHtml(input.sessionTitle)}</strong><br/>
+            <span style="color:${BRAND.muted};">${escapeHtml(when)}</span><br/>
+            <span style="color:${BRAND.muted};">${input.durationMinutes} minutes</span><br/><br/>
+            <strong style="color:${BRAND.forest};">Client</strong><br/>
+            <span style="color:${BRAND.ink};">${escapeHtml(input.clientName)}</span><br/>
+            <a href="mailto:${escapeHtml(input.clientEmail)}" style="color:${BRAND.teal};">${escapeHtml(input.clientEmail)}</a>
+            ${notesBlock}
           </td>
         </tr>
       </table>
       <p style="margin:0 0 14px;">
-        Find a quiet space and settle your nervous system. If you open the link early, a countdown will welcome you until the room opens (about 15 minutes before start).
+        You may enter the room early to prepare. Clients can join from about 15 minutes before the scheduled start.
       </p>
-      <p style="margin:0;">
-        With care,<br/>
-        <em style="color:${BRAND.forest};">Sacred Reference</em>
+      <p style="margin:0 0 8px;font-size:13px;color:${BRAND.muted};word-break:break-all;">
+        Session room: <a href="${escapeHtml(join)}" style="color:${BRAND.teal};">${escapeHtml(join)}</a>
+      </p>
+      <p style="margin:0;font-size:13px;color:${BRAND.muted};word-break:break-all;">
+        Admin dashboard: <a href="${escapeHtml(admin)}" style="color:${BRAND.teal};">${escapeHtml(admin)}</a>
       </p>
     `,
-    ctaLabel: "Join session room",
+    ctaLabel: "Open session room",
     ctaHref: join,
+    footerNote:
+      "This is an internal appointment notification from Sacred Reference.",
   });
+}
+
+/** Strip internal cron/system markers from notes before emailing */
+function sanitizeClientFacingNotes(notes?: string | null): string {
+  if (!notes?.trim()) return "";
+  return notes
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(
+      (line) =>
+        line &&
+        !line.startsWith("[reminder") &&
+        !line.startsWith("[system")
+    )
+    .join("\n")
+    .trim()
+    .slice(0, 800);
 }
 
 export function recordingReadyHtml(input: {

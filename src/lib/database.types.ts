@@ -92,6 +92,7 @@ export interface Database {
           informed_consent_version: string | null;
           egress_id: string | null;
           recording_path: string | null;
+          reminder_1h_sent_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -112,6 +113,7 @@ export interface Database {
           informed_consent_version?: string | null;
           egress_id?: string | null;
           recording_path?: string | null;
+          reminder_1h_sent_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -132,6 +134,7 @@ export interface Database {
           informed_consent_version?: string | null;
           egress_id?: string | null;
           recording_path?: string | null;
+          reminder_1h_sent_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
