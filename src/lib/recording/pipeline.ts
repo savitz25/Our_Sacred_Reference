@@ -11,7 +11,7 @@ import {
   recordingStoragePath,
 } from "@/lib/livekit/config";
 import { processRecordingWithFfmpeg } from "@/lib/media/ffmpeg-process";
-import { sendRecordingReadyEmail } from "@/lib/media/notify";
+import { sendRecordingReadyEmail } from "@/lib/email";
 import { EgressStatus } from "livekit-server-sdk";
 
 export type PipelineResult = {
@@ -303,8 +303,13 @@ export async function finalizeSessionRecording(input: {
 
   if (markReady) {
     steps.push("video_ready");
-    await sendRecordingReadyEmail(session.user_id, session.title);
-    steps.push("email_attempted");
+    const emailResult = await sendRecordingReadyEmail({
+      userId: session.user_id,
+      videoId,
+      videoTitle: session.title,
+      storagePath: finalPath,
+    });
+    steps.push(emailResult.sent ? "email_sent" : "email_skipped");
   } else {
     steps.push("awaiting_egress_webhook");
   }
@@ -388,8 +393,13 @@ export async function onEgressCompleted(input: {
 
   steps.push("video_ready");
 
-  await sendRecordingReadyEmail(userId, video.title);
-  steps.push("email_attempted");
+  const emailResult = await sendRecordingReadyEmail({
+    userId,
+    videoId: video.id,
+    videoTitle: video.title,
+    storagePath: ff.path,
+  });
+  steps.push(emailResult.sent ? "email_sent" : "email_skipped");
 
   return {
     success: true,

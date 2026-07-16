@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createUserForBooking } from "@/app/actions/auth";
 import type { SessionType } from "@/lib/database.types";
 import { INFORMED_CONSENT_VERSION } from "@/lib/legal";
+import { sendBookingConfirmationEmail } from "@/lib/email";
 
 export type BookingResult = {
   success: boolean;
@@ -189,6 +190,19 @@ export async function bookDiscoverySession(input: {
       },
     },
   ]);
+
+  // 5. Transactional email — booking confirmation (Resend)
+  const emailResult = await sendBookingConfirmationEmail({
+    to: input.email.trim().toLowerCase(),
+    fullName,
+    sessionTitle: title,
+    scheduledAt,
+    durationMinutes: duration,
+    sessionId: session.id,
+  });
+  if (!emailResult.sent) {
+    console.info("[booking] confirmation email not sent:", emailResult.reason);
+  }
 
   revalidatePath("/portal");
   revalidatePath("/portal/library");

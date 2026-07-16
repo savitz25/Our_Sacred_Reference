@@ -66,7 +66,8 @@ Fill in real values in `.env.local` (never commit this file):
 | `NEXT_PUBLIC_SITE_URL` | `http://localhost:3000` locally |
 | `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` / `NEXT_PUBLIC_LIVEKIT_URL` | [LiveKit Cloud](https://cloud.livekit.io) |
 | `SUPABASE_S3_ACCESS_KEY` / `SUPABASE_S3_SECRET_KEY` | Supabase → Storage → S3 Access Keys |
-| `RESEND_API_KEY` | Optional |
+| `RESEND_API_KEY` | [Resend](https://resend.com) → API Keys |
+| `RESEND_FROM_EMAIL` | e.g. `Sacred Reference <hello@oursacredreference.com>` (verified domain) |
 
 Full comments: [`.env.example`](./.env.example).
 
@@ -148,11 +149,25 @@ Detailed guide: [`docs/DOMAIN_AND_DNS.md`](./docs/DOMAIN_AND_DNS.md).
   - Events: at least `egress_ended`  
 - [ ] Test join room (not demo mode)  
 
-### E. Email (optional but recommended)
+### E. Resend transactional email
 
-- [ ] Resend (or similar) API key + verified domain  
-- [ ] `RESEND_FROM_EMAIL` set  
-- [ ] Test booking confirmation / recording-ready email  
+1. Create an API key at [resend.com](https://resend.com) → **API Keys**.
+2. Add and verify domain `oursacredreference.com` (or your domain) under **Domains** (SPF/DKIM DNS).
+3. Set on Vercel / `.env.local`:
+
+```env
+RESEND_API_KEY=re_xxxxxxxx
+RESEND_FROM_EMAIL=Sacred Reference <hello@oursacredreference.com>
+```
+
+4. Restart / redeploy.
+5. Test:
+   - Book a discovery session → **booking confirmation** email
+   - Complete a recorded session → **recording ready** email (library + private link)
+6. Optional reminders: call `POST /api/cron/session-reminders` hourly with  
+   `Authorization: Bearer <CRON_SECRET>` (set `CRON_SECRET` in env).
+
+Until the domain is verified, Resend may only allow sends to your account email; use their test mode or verify DNS for production.
 
 ### F. End-to-end user journey test
 
@@ -245,7 +260,18 @@ SUPABASE_S3_ACCESS_KEY
 SUPABASE_S3_SECRET_KEY
 ```
 
-Optional: `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, S3 endpoint overrides.
+**Email (Resend):** `RESEND_API_KEY`, `RESEND_FROM_EMAIL`  
+Optional: S3 endpoint overrides, `CRON_SECRET` for session reminders.
+
+### Transactional emails (Resend)
+
+| Trigger | Email |
+|---------|--------|
+| Successful `/book-session` | Booking confirmation (time, portal + join link) |
+| Cron ` /api/cron/session-reminders` | Session reminder (~24h window) |
+| Recording ready (egress pipeline) | Library link + optional 48h signed playback URL |
+
+Templates: forest/gold branded HTML in `src/lib/email/templates.ts`.
 
 ---
 

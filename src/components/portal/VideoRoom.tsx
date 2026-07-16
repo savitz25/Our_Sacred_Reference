@@ -235,8 +235,8 @@ export function VideoRoom({
             normalized.
           </p>
           <p className="text-sm text-muted mb-8">
-            You&apos;ll receive an email when the recording is ready (if Resend
-            is configured).
+            You&apos;ll receive an email when the recording is ready (when
+            Resend is configured).
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button href="/portal/session-complete" variant="gold">
