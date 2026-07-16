@@ -10,8 +10,10 @@ import {
 import {
   bookingConfirmationHtml,
   practitionerSessionReminderHtml,
+  practitionerSessionRescheduledHtml,
   recordingReadyHtml,
   sessionReminderHtml,
+  sessionRescheduledHtml,
 } from "@/lib/email/templates";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createSignedRecordingUrl } from "@/lib/storage/recordings";
@@ -212,6 +214,89 @@ export async function sendSessionReminderEmail(input: {
     sent: false,
     reason: errors.join("; ") || "no recipients",
   };
+}
+
+/**
+ * Reschedule confirmation — personalized emails to client and Michele.
+ */
+export async function sendSessionRescheduledEmail(input: {
+  to: string;
+  fullName: string;
+  sessionTitle: string;
+  previousScheduledAt: Date;
+  scheduledAt: Date;
+  durationMinutes: number;
+  sessionId: string;
+}): Promise<SendResult> {
+  if (!isResendConfigured()) {
+    return { sent: false, reason: "RESEND_API_KEY not set" };
+  }
+
+  const whenShort = input.scheduledAt.toLocaleString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  const sessionIdTag = input.sessionId.slice(0, 36);
+  const recipients: string[] = [];
+  const errors: string[] = [];
+  let anySent = false;
+  let lastId: string | undefined;
+
+  const clientResult = await sendEmail({
+    to: input.to,
+    subject: `Rescheduled: ${input.sessionTitle} — ${whenShort}`,
+    html: sessionRescheduledHtml(input),
+    tags: [
+      { name: "type", value: "session_rescheduled" },
+      { name: "role", value: "client" },
+      { name: "session_id", value: sessionIdTag },
+    ],
+  });
+  if (clientResult.sent) {
+    anySent = true;
+    lastId = clientResult.id;
+    recipients.push(...(clientResult.recipients ?? [input.to]));
+  } else {
+    errors.push(`client: ${clientResult.reason}`);
+  }
+
+  const practitioner = getPractitionerNotifyEmail().toLowerCase();
+  const clientEmail = input.to.trim().toLowerCase();
+  if (practitioner && practitioner !== clientEmail) {
+    const pracResult = await sendEmail({
+      to: practitioner,
+      subject: `Rescheduled: ${input.fullName} — ${whenShort}`,
+      html: practitionerSessionRescheduledHtml({
+        clientName: input.fullName || "Client",
+        clientEmail: input.to,
+        sessionTitle: input.sessionTitle,
+        previousScheduledAt: input.previousScheduledAt,
+        scheduledAt: input.scheduledAt,
+        durationMinutes: input.durationMinutes,
+        sessionId: input.sessionId,
+      }),
+      tags: [
+        { name: "type", value: "session_rescheduled" },
+        { name: "role", value: "practitioner" },
+        { name: "session_id", value: sessionIdTag },
+      ],
+    });
+    if (pracResult.sent) {
+      anySent = true;
+      lastId = pracResult.id ?? lastId;
+      recipients.push(...(pracResult.recipients ?? [practitioner]));
+    } else {
+      errors.push(`practitioner: ${pracResult.reason}`);
+    }
+  }
+
+  if (anySent) {
+    return { sent: true, id: lastId, recipients: [...new Set(recipients)] };
+  }
+  return { sent: false, reason: errors.join("; ") || "no recipients" };
 }
 
 /**

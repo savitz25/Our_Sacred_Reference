@@ -1,6 +1,7 @@
 export {
   sendBookingConfirmationEmail,
   sendSessionReminderEmail,
+  sendSessionRescheduledEmail,
   sendRecordingReadyEmail,
   getProfileEmail,
   type SendResult,

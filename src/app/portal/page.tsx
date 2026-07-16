@@ -1,10 +1,11 @@
+import { Suspense } from "react";
 import Link from "next/link";
-import { Video, Calendar, Film, ArrowRight, Clock } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { Film, ArrowRight } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { UpcomingSessionsPanel } from "@/components/portal/UpcomingSessionsPanel";
 
 export default async function PortalDashboardPage() {
   const { profile, user } = await requireProfile();
@@ -13,7 +14,7 @@ export default async function PortalDashboardPage() {
 
   const { data: upcoming } = await supabase
     .from("sessions")
-    .select("*")
+    .select("id, title, scheduled_at, duration_minutes, status")
     .eq("user_id", user.id)
     .gte("scheduled_at", now)
     .neq("status", "cancelled")
@@ -25,7 +26,7 @@ export default async function PortalDashboardPage() {
   if (profile.role === "practitioner" || profile.role === "admin") {
     const { data } = await supabase
       .from("sessions")
-      .select("*")
+      .select("id, title, scheduled_at, duration_minutes, status")
       .gte("scheduled_at", now)
       .neq("status", "cancelled")
       .order("scheduled_at", { ascending: true })
@@ -67,94 +68,21 @@ export default async function PortalDashboardPage() {
         </p>
       </div>
 
-      {nextSession && joinable && (
-        <Card className="mb-8 bg-sacred-gradient border-0 text-cream !shadow-elevated">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-            <div>
-              <Badge className="mb-3 !bg-gold/20 !text-gold-soft">
-                Upcoming
-              </Badge>
-              <h2 className="font-serif text-2xl mb-1">{nextSession.title}</h2>
-              <p className="text-cream/75 text-sm flex items-center gap-2">
-                <Clock className="h-4 w-4" aria-hidden />
-                {new Date(nextSession.scheduled_at).toLocaleString("en-US", {
-                  weekday: "long",
-                  month: "long",
-                  day: "numeric",
-                  hour: "numeric",
-                  minute: "2-digit",
-                })}{" "}
-                · {nextSession.duration_minutes} min
-              </p>
-            </div>
-            <Button
-              href={`/portal/session/${nextSession.id}`}
-              variant="gold"
-              size="lg"
-            >
-              <Video className="h-5 w-5" aria-hidden />
-              Start Session
-            </Button>
-          </div>
-        </Card>
-      )}
-
       <div className="grid gap-6 lg:grid-cols-3 mb-10">
-        <Card className="lg:col-span-2">
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="font-serif text-xl text-forest flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-teal" aria-hidden />
-              Upcoming sessions
-            </h2>
-          </div>
-          {!sessions.length ? (
-            <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center">
-              <p className="text-ink-soft mb-4">No upcoming sessions yet.</p>
-              <Button href="/book-session" variant="gold" size="sm">
-                Book free discovery session
-              </Button>
-            </div>
-          ) : (
-            <ul className="space-y-3">
-              {sessions.map((s) => {
-                const canJoin =
-                  new Date(s.scheduled_at).getTime() - Date.now() <
-                  24 * 60 * 60 * 1000;
-                return (
-                  <li
-                    key={s.id}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-border bg-cream/50 px-4 py-3"
-                  >
-                    <div>
-                      <p className="font-medium text-ink">{s.title}</p>
-                      <p className="text-sm text-muted">
-                        {new Date(s.scheduled_at).toLocaleString("en-US", {
-                          weekday: "short",
-                          month: "short",
-                          day: "numeric",
-                          hour: "numeric",
-                          minute: "2-digit",
-                        })}{" "}
-                        · {s.duration_minutes} min · {s.status}
-                      </p>
-                    </div>
-                    {canJoin ? (
-                      <Button
-                        href={`/portal/session/${s.id}`}
-                        size="sm"
-                        variant="secondary"
-                      >
-                        Start Session
-                      </Button>
-                    ) : (
-                      <Badge variant="outline">Scheduled</Badge>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </Card>
+        <div className="lg:col-span-2 space-y-0">
+          <Suspense
+            fallback={
+              <Card className="mb-8">
+                <p className="text-sm text-muted">Loading sessions…</p>
+              </Card>
+            }
+          >
+            <UpcomingSessionsPanel
+              sessions={sessions}
+              nextSessionId={joinable ? nextSession?.id : null}
+            />
+          </Suspense>
+        </div>
 
         <Card>
           <h2 className="font-serif text-xl text-forest mb-4">Quick links</h2>

@@ -227,10 +227,12 @@ export async function deleteAvailabilityBlock(
 /**
  * Public: available slots for a calendar day (default − booked − blocked).
  * Pass client timezoneOffsetMinutes (from Date#getTimezoneOffset) for correct same-day filtering.
+ * Optional excludeSessionId frees that session’s current slot (reschedule flow).
  */
 export async function getAvailableSlotsForDate(
   dateIso: string,
-  timezoneOffsetMinutes?: number | null
+  timezoneOffsetMinutes?: number | null,
+  excludeSessionId?: string | null
 ): Promise<{ slots: string[]; booked: string[]; error?: string }> {
   const day = dateIso.slice(0, 10);
   const offset =
@@ -248,13 +250,17 @@ export async function getAvailableSlotsForDate(
 
     const { data: sessions } = await admin
       .from("sessions")
-      .select("scheduled_at")
+      .select("id, scheduled_at")
       .gte("scheduled_at", windowStart.toISOString())
       .lte("scheduled_at", windowEnd.toISOString())
       .neq("status", "cancelled");
 
+    const otherSessions = (sessions ?? []).filter(
+      (row) => !excludeSessionId || row.id !== excludeSessionId
+    );
+
     // Map booked times back to wall-clock labels in the client's zone
-    const booked = (sessions ?? [])
+    const booked = otherSessions
       .map((row) => {
         const dt = new Date(row.scheduled_at);
         // Convert UTC instant to client wall clock for label matching
@@ -302,9 +308,10 @@ export async function getAvailableSlotsForDate(
     );
 
     console.info(
-      "[availability] day=%s offset=%s available=%j booked=%j",
+      "[availability] day=%s offset=%s exclude=%s available=%j booked=%j",
       day,
       offset,
+      excludeSessionId ?? "-",
       slots,
       booked
     );
@@ -323,11 +330,13 @@ export async function getAvailableSlotsForDate(
 export async function assertSlotIsBookable(
   dateIso: string,
   timeLabel: string,
-  timezoneOffsetMinutes?: number | null
+  timezoneOffsetMinutes?: number | null,
+  excludeSessionId?: string | null
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const { slots } = await getAvailableSlotsForDate(
     dateIso,
-    timezoneOffsetMinutes
+    timezoneOffsetMinutes,
+    excludeSessionId
   );
   // Normalize spacing for comparison ("3:00 PM" vs "3:00  PM")
   const norm = (s: string) => s.replace(/\s+/g, " ").trim();

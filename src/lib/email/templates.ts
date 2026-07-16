@@ -158,6 +158,111 @@ function formatSessionWhen(d: Date): string {
   });
 }
 
+/** Client-facing reschedule confirmation */
+export function sessionRescheduledHtml(input: {
+  fullName: string;
+  sessionTitle: string;
+  previousScheduledAt: Date;
+  scheduledAt: Date;
+  durationMinutes: number;
+  sessionId: string;
+}): string {
+  const site = getSiteUrl();
+  const when = formatSessionWhen(input.scheduledAt);
+  const previousWhen = formatSessionWhen(input.previousScheduledAt);
+  const first = input.fullName.split(" ")[0] || "there";
+  const join = `${site}/portal/session/${input.sessionId}`;
+  const portal = `${site}/portal`;
+
+  return layout({
+    preheader: `Rescheduled: ${input.sessionTitle} → ${when}`,
+    title: "Your session has been rescheduled",
+    bodyHtml: `
+      <p style="margin:0 0 14px;">Dear ${escapeHtml(first)},</p>
+      <p style="margin:0 0 14px;">
+        Your Sacred Reference session has been moved to a new time. Your session
+        room, library, and any past recordings remain linked to this same session.
+      </p>
+      <table role="presentation" width="100%" style="background:${BRAND.cream};border-radius:12px;margin:16px 0;">
+        <tr>
+          <td style="padding:16px 18px;font-size:14px;line-height:1.6;">
+            <strong style="color:${BRAND.forest};">${escapeHtml(input.sessionTitle)}</strong><br/>
+            <span style="color:${BRAND.muted};">Previously: ${escapeHtml(previousWhen)}</span><br/>
+            <strong style="color:${BRAND.forest};">New time: ${escapeHtml(when)}</strong><br/>
+            <span style="color:${BRAND.muted};">${input.durationMinutes} minutes · Secure video on Sacred Reference</span>
+          </td>
+        </tr>
+      </table>
+      <p style="margin:0 0 14px;">
+        You will receive a gentle reminder about one hour before the new start time
+        (when email is configured). Open the room from your portal when it is time.
+      </p>
+      <p style="margin:0 0 14px;font-size:13px;color:${BRAND.muted};word-break:break-all;">
+        Session link: <a href="${escapeHtml(join)}" style="color:${BRAND.teal};">${escapeHtml(join)}</a>
+      </p>
+      <p style="margin:0;">
+        With care,<br/>
+        <em style="color:${BRAND.forest};">Michele &amp; Sacred Reference</em>
+      </p>
+    `,
+    ctaLabel: "Open client portal",
+    ctaHref: portal,
+    footerNote:
+      "Need to change again? Sign in to the portal and choose Reschedule on your upcoming session.",
+  });
+}
+
+/** Practitioner notification when a client reschedules */
+export function practitionerSessionRescheduledHtml(input: {
+  clientName: string;
+  clientEmail: string;
+  sessionTitle: string;
+  previousScheduledAt: Date;
+  scheduledAt: Date;
+  durationMinutes: number;
+  sessionId: string;
+}): string {
+  const site = getSiteUrl();
+  const when = formatSessionWhen(input.scheduledAt);
+  const previousWhen = formatSessionWhen(input.previousScheduledAt);
+  const join = `${site}/portal/session/${input.sessionId}`;
+  const admin = `${site}/admin`;
+
+  return layout({
+    preheader: `Rescheduled: ${input.clientName} → ${when}`,
+    title: "Session rescheduled",
+    bodyHtml: `
+      <p style="margin:0 0 14px;">Dear Michele,</p>
+      <p style="margin:0 0 14px;">
+        A client has rescheduled their session. The same session record is kept
+        (recordings and history stay intact). A 1-hour reminder will fire for the new time.
+      </p>
+      <table role="presentation" width="100%" style="background:${BRAND.cream};border-radius:12px;margin:16px 0;">
+        <tr>
+          <td style="padding:16px 18px;font-size:14px;line-height:1.6;">
+            <strong style="color:${BRAND.forest};">${escapeHtml(input.sessionTitle)}</strong><br/>
+            <span style="color:${BRAND.muted};">Previously: ${escapeHtml(previousWhen)}</span><br/>
+            <strong style="color:${BRAND.forest};">New time: ${escapeHtml(when)}</strong><br/>
+            <span style="color:${BRAND.muted};">${input.durationMinutes} minutes</span><br/><br/>
+            <strong style="color:${BRAND.forest};">Client</strong><br/>
+            <span style="color:${BRAND.ink};">${escapeHtml(input.clientName)}</span><br/>
+            <a href="mailto:${escapeHtml(input.clientEmail)}" style="color:${BRAND.teal};">${escapeHtml(input.clientEmail)}</a>
+          </td>
+        </tr>
+      </table>
+      <p style="margin:0 0 8px;font-size:13px;color:${BRAND.muted};word-break:break-all;">
+        Session room: <a href="${escapeHtml(join)}" style="color:${BRAND.teal};">${escapeHtml(join)}</a>
+      </p>
+      <p style="margin:0;font-size:13px;color:${BRAND.muted};word-break:break-all;">
+        Admin: <a href="${escapeHtml(admin)}" style="color:${BRAND.teal};">${escapeHtml(admin)}</a>
+      </p>
+    `,
+    ctaLabel: "Open session room",
+    ctaHref: join,
+    footerNote: "Internal appointment notification from Sacred Reference.",
+  });
+}
+
 /** Client-facing ~1 hour pre-session reminder */
 export function sessionReminderHtml(input: {
   fullName: string;

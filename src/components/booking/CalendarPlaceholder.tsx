@@ -9,6 +9,8 @@ interface CalendarPlaceholderProps {
   onSelectSlot?: (date: Date, time: string) => void;
   selectedDate?: Date | null;
   selectedTime?: string | null;
+  /** When set, this session’s current slot is treated as free (reschedule). */
+  excludeSessionId?: string | null;
 }
 
 function startOfMonth(d: Date) {
@@ -40,6 +42,7 @@ export function CalendarPlaceholder({
   onSelectSlot,
   selectedDate,
   selectedTime,
+  excludeSessionId,
 }: CalendarPlaceholderProps) {
   const today = useMemo(() => {
     const t = new Date();
@@ -73,7 +76,11 @@ export function CalendarPlaceholder({
     let cancelled = false;
     setLoadingSlots(true);
     const offset = new Date().getTimezoneOffset();
-    getAvailableSlotsForDate(toDateIso(activeDate), offset)
+    getAvailableSlotsForDate(
+      toDateIso(activeDate),
+      offset,
+      excludeSessionId ?? null
+    )
       .then((res) => {
         if (!cancelled) setAvailableSlots(res.slots ?? []);
       })
@@ -86,7 +93,7 @@ export function CalendarPlaceholder({
     return () => {
       cancelled = true;
     };
-  }, [activeDate]);
+  }, [activeDate, excludeSessionId]);
 
   function selectDate(day: number) {
     const d = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), day);
