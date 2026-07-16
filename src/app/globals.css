@@ -154,6 +154,23 @@ body {
   aspect-ratio: 16 / 10;
 }
 
+/* Admin form controls */
+.input-admin {
+  display: block;
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+  background: rgba(245, 240, 232, 0.5);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--ink);
+}
+.input-admin:focus {
+  outline: none;
+  border-color: var(--teal);
+  box-shadow: 0 0 0 2px rgba(42, 140, 126, 0.2);
+}
+
 /* Screen-reader only (skip link) */
 .sr-only {
   position: absolute;

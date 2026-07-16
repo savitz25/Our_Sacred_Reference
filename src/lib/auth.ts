@@ -60,3 +60,13 @@ export async function requireProfile() {
 
   return { user, profile };
 }
+
+/** Practitioner or admin only — redirects others to portal */
+export async function requirePractitioner() {
+  const { user, profile } = await requireProfile();
+  if (profile.role !== "practitioner" && profile.role !== "admin") {
+    redirect("/portal");
+  }
+  return { user, profile };
+}
+

@@ -9,7 +9,8 @@ import { legalNav } from "@/lib/legal";
 
 export function Footer() {
   const pathname = usePathname();
-  if (pathname.startsWith("/portal")) return null;
+  if (pathname.startsWith("/portal") || pathname.startsWith("/admin"))
+    return null;
 
   const year = new Date().getFullYear();
 

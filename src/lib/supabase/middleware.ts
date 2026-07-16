@@ -35,9 +35,10 @@ export async function updateSession(request: NextRequest) {
 
   const path = request.nextUrl.pathname;
   const isPortal = path.startsWith("/portal");
+  const isAdmin = path.startsWith("/admin");
   const isAuthPage = path === "/login" || path === "/auth/callback";
 
-  if (isPortal && !user) {
+  if ((isPortal || isAdmin) && !user) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
     redirectUrl.searchParams.set("next", path);
@@ -51,8 +52,9 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  // Silence unused in edge cases
+  // Role check for /admin is enforced in admin layout (requirePractitioner)
   void isAuthPage;
 
   return supabaseResponse;
 }
+

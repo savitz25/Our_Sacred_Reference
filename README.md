@@ -25,6 +25,7 @@ Supabase: `https://mbboakpdxgquntlohlix.supabase.co`
 | Library signed URLs | ✅ |
 | Resend “recording ready” email | ✅ optional |
 | Security headers, sitemap, robots, health check | ✅ |
+| Practitioner **Admin** (`/admin`) — appointments & recordings | ✅ |
 | Stripe payments | ⏳ future |
 | Full HIPAA / BAAs | ⏳ legal + vendor BAAs |
 
@@ -227,7 +228,9 @@ src/
       webhooks/        # session-ended + livekit-egress
     book-session/      # calendar + consent intake
     portal/            # client dashboard, library, video room
+    admin/             # practitioner admin (appointments + recordings)
   components/
+    admin/             # AdminDashboard tables, filters, CSV export
   lib/
     livekit/           # egress helpers
     recording/         # pipeline orchestration

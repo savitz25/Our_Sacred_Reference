@@ -10,6 +10,7 @@ import {
   LogOut,
   Menu,
   X,
+  Shield,
 } from "lucide-react";
 import { useState, useTransition } from "react";
 import { portalNav, siteConfig } from "@/lib/content";
@@ -20,6 +21,7 @@ const icons = {
   "/portal": LayoutDashboard,
   "/portal/library": Film,
   "/portal/profile": User,
+  "/admin": Shield,
 } as const;
 
 interface PortalNavProps {
@@ -31,6 +33,11 @@ export function PortalNav({ userName, userRole }: PortalNavProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
+  const isPractitioner =
+    userRole === "practitioner" || userRole === "admin";
+  const navItems = isPractitioner
+    ? [...portalNav, { name: "Admin", href: "/admin" }]
+    : portalNav;
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-white/95 backdrop-blur-md">
@@ -54,7 +61,7 @@ export function PortalNav({ userName, userRole }: PortalNavProps) {
             className="hidden md:flex items-center gap-1"
             aria-label="Portal"
           >
-            {portalNav.map((item) => {
+            {navItems.map((item) => {
               const Icon = icons[item.href as keyof typeof icons];
               const active =
                 item.href === "/portal"
@@ -116,7 +123,7 @@ export function PortalNav({ userName, userRole }: PortalNavProps) {
 
       {open && (
         <nav className="md:hidden border-t border-border px-5 py-3 space-y-1">
-          {portalNav.map((item) => (
+          {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}

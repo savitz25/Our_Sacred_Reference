@@ -13,7 +13,8 @@ export function Header() {
   const [open, setOpen] = useState(false);
 
   const isPortal = pathname.startsWith("/portal");
-  if (isPortal) return null;
+  const isAdmin = pathname.startsWith("/admin");
+  if (isPortal || isAdmin) return null;
 
   const mainNav = navigation.filter((item) => !item.cta);
   const cta = navigation.find((item) => item.cta);
