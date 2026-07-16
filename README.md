@@ -102,6 +102,7 @@ In [Supabase SQL Editor](https://supabase.com/dashboard/project/mbboakpdxgquntlo
 2. `supabase/migrations/002_consents.sql`
 3. `supabase/migrations/003_recording_egress.sql`
 4. `supabase/migrations/004_admin_profile_select.sql`
+5. `supabase/migrations/005_availability_blocks.sql` (admin calendar blocks)
 
 **Michele admin account** (password via env only — never commit):
 

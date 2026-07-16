@@ -24,6 +24,10 @@ export type VideoStatus =
   | "ready"
   | "failed"
   | "archived";
+export type AvailabilityBlockKind =
+  | "date_range"
+  | "datetime_range"
+  | "recurring_weekly";
 
 export interface Database {
   public: {
@@ -247,6 +251,60 @@ export interface Database {
         };
         Relationships: [];
       };
+      availability_blocks: {
+        Row: {
+          id: string;
+          kind: AvailabilityBlockKind;
+          starts_on: string | null;
+          ends_on: string | null;
+          start_time: string | null;
+          end_time: string | null;
+          start_at: string | null;
+          end_at: string | null;
+          day_of_week: number | null;
+          recurrence_until: string | null;
+          label: string | null;
+          is_active: boolean;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          kind: AvailabilityBlockKind;
+          starts_on?: string | null;
+          ends_on?: string | null;
+          start_time?: string | null;
+          end_time?: string | null;
+          start_at?: string | null;
+          end_at?: string | null;
+          day_of_week?: number | null;
+          recurrence_until?: string | null;
+          label?: string | null;
+          is_active?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          kind?: AvailabilityBlockKind;
+          starts_on?: string | null;
+          ends_on?: string | null;
+          start_time?: string | null;
+          end_time?: string | null;
+          start_at?: string | null;
+          end_at?: string | null;
+          day_of_week?: number | null;
+          recurrence_until?: string | null;
+          label?: string | null;
+          is_active?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -260,6 +318,7 @@ export interface Database {
       session_status: SessionStatus;
       session_type: SessionType;
       video_status: VideoStatus;
+      availability_block_kind: AvailabilityBlockKind;
     };
     CompositeTypes: Record<string, never>;
   };
@@ -268,3 +327,5 @@ export interface Database {
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 export type Session = Database["public"]["Tables"]["sessions"]["Row"];
 export type Video = Database["public"]["Tables"]["videos"]["Row"];
+export type AvailabilityBlock =
+  Database["public"]["Tables"]["availability_blocks"]["Row"];

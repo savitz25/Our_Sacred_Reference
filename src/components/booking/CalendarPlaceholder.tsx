@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
-import { getBookedSlotsForDate } from "@/app/actions/booking";
+import { getAvailableSlotsForDate } from "@/app/actions/availability";
 import { cn } from "@/lib/utils";
 
 interface CalendarPlaceholderProps {
@@ -10,14 +10,6 @@ interface CalendarPlaceholderProps {
   selectedDate?: Date | null;
   selectedTime?: string | null;
 }
-
-const DEFAULT_SLOTS = [
-  "9:00 AM",
-  "11:00 AM",
-  "1:00 PM",
-  "3:00 PM",
-  "5:00 PM",
-];
 
 function startOfMonth(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), 1);
@@ -60,7 +52,7 @@ export function CalendarPlaceholder({
   const [localTime, setLocalTime] = useState<string | null>(
     selectedTime ?? null
   );
-  const [booked, setBooked] = useState<string[]>([]);
+  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
 
   const activeDate = selectedDate ?? localDate;
@@ -75,14 +67,17 @@ export function CalendarPlaceholder({
 
   useEffect(() => {
     if (!activeDate) {
-      setBooked([]);
+      setAvailableSlots([]);
       return;
     }
     let cancelled = false;
     setLoadingSlots(true);
-    getBookedSlotsForDate(toDateIso(activeDate))
-      .then((slots) => {
-        if (!cancelled) setBooked(slots);
+    getAvailableSlotsForDate(toDateIso(activeDate))
+      .then((res) => {
+        if (!cancelled) setAvailableSlots(res.slots ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setAvailableSlots([]);
       })
       .finally(() => {
         if (!cancelled) setLoadingSlots(false);
@@ -91,12 +86,6 @@ export function CalendarPlaceholder({
       cancelled = true;
     };
   }, [activeDate]);
-
-  const availableSlots = DEFAULT_SLOTS.filter((s) => {
-    // Normalize comparison for booked times
-    const bookedNorm = booked.map((b) => b.replace(/\s+/g, " ").trim());
-    return !bookedNorm.includes(s);
-  });
 
   function selectDate(day: number) {
     const d = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), day);
@@ -219,7 +208,9 @@ export function CalendarPlaceholder({
           <p className="text-sm text-muted mb-2">Checking availability…</p>
         )}
         {activeDate && !loadingSlots && availableSlots.length === 0 && (
-          <p className="text-sm text-muted">No availability on this day.</p>
+          <p className="text-sm text-muted">
+            No availability on this day (booked or blocked).
+          </p>
         )}
         {availableSlots.length > 0 && (
           <div className="flex flex-wrap gap-2">
@@ -243,8 +234,8 @@ export function CalendarPlaceholder({
         )}
       </div>
       <p className="mt-4 text-xs text-muted">
-        Live availability from Supabase. Booked slots are hidden automatically.
-        Optional Cal.com embed can replace this UI later.
+        Live availability from Supabase. Booked and practitioner-blocked times
+        are hidden automatically.
       </p>
     </div>
   );

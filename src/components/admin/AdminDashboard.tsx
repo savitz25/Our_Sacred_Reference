@@ -11,14 +11,16 @@ import {
   Video,
   Play,
   Loader2,
+  CalendarOff,
 } from "lucide-react";
 import type { AdminSessionRow, AdminVideoRow } from "@/lib/admin/queries";
 import { downloadCsv, rowsToCsv } from "@/lib/admin/csv";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { AvailabilityManager } from "@/components/admin/AvailabilityManager";
 import { cn } from "@/lib/utils";
 
-type Tab = "appointments" | "recordings";
+type Tab = "appointments" | "recordings" | "availability";
 
 const SESSION_TYPES = [
   "all",
@@ -265,9 +267,19 @@ export function AdminDashboard({
           Video consults
           <span className="text-xs opacity-70">({filteredVideos.length})</span>
         </TabButton>
+        <TabButton
+          active={tab === "availability"}
+          onClick={() => setTab("availability")}
+        >
+          <CalendarOff className="h-4 w-4" aria-hidden />
+          Manage availability
+        </TabButton>
       </div>
 
+      {tab === "availability" && <AvailabilityManager />}
+
       {/* Filters */}
+      {tab !== "availability" && (
       <div className="rounded-2xl border border-border bg-white p-4 sm:p-5 shadow-soft mb-6 space-y-4">
         <div className="relative">
           <Search
@@ -383,8 +395,9 @@ export function AdminDashboard({
           </Button>
         </div>
       </div>
+      )}
 
-      {playError && (
+      {tab !== "availability" && playError && (
         <p
           className="mb-4 rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-700"
           role="alert"
@@ -393,9 +406,10 @@ export function AdminDashboard({
         </p>
       )}
 
-      {tab === "appointments" ? (
+      {tab === "appointments" && (
         <AppointmentsTable sessions={filteredSessions} />
-      ) : (
+      )}
+      {tab === "recordings" && (
         <RecordingsTable
           videos={filteredVideos}
           loadingVideoId={loadingVideoId}

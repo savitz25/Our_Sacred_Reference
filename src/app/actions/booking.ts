@@ -6,6 +6,7 @@ import { createUserForBooking } from "@/app/actions/auth";
 import type { SessionType } from "@/lib/database.types";
 import { INFORMED_CONSENT_VERSION } from "@/lib/legal";
 import { sendBookingConfirmationEmail } from "@/lib/email";
+import { assertSlotIsBookable } from "@/app/actions/availability";
 
 export type BookingResult = {
   success: boolean;
@@ -145,6 +146,20 @@ export async function bookDiscoverySession(input: {
         success: false,
         error: "Please choose a future date and time.",
       };
+    }
+
+    // Respect practitioner availability blocks + already booked times
+    try {
+      const bookable = await assertSlotIsBookable(
+        input.date.slice(0, 10),
+        input.time
+      );
+      if (!bookable.ok) {
+        return { success: false, error: bookable.error };
+      }
+    } catch (e) {
+      console.warn("[booking] assertSlotIsBookable:", e);
+      // Continue if availability service fails; conflict check still applies
     }
 
     // —— 1. Account ——
@@ -355,36 +370,16 @@ export async function bookDiscoverySession(input: {
   }
 }
 
-/** Fetch taken slots for a calendar day */
+/** @deprecated Use getAvailableSlotsForDate from availability actions */
 export async function getBookedSlotsForDate(
   dateIso: string
 ): Promise<string[]> {
   try {
-    const admin = createAdminClient();
-    const [y, mo, d] = dateIso.slice(0, 10).split("-").map(Number);
-    const start = new Date(y, mo - 1, d, 0, 0, 0);
-    const end = new Date(y, mo - 1, d, 23, 59, 59);
-
-    const { data, error } = await admin
-      .from("sessions")
-      .select("scheduled_at")
-      .gte("scheduled_at", start.toISOString())
-      .lte("scheduled_at", end.toISOString())
-      .neq("status", "cancelled");
-
-    if (error || !data) {
-      if (error) console.warn("[booking] getBookedSlots:", error.message);
-      return [];
-    }
-
-    return data.map((row) => {
-      const dt = new Date(row.scheduled_at);
-      return dt.toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-      });
-    });
+    const { getAvailableSlotsForDate } = await import(
+      "@/app/actions/availability"
+    );
+    const res = await getAvailableSlotsForDate(dateIso);
+    return res.booked;
   } catch (e) {
     console.warn("[booking] getBookedSlots threw:", e);
     return [];
