@@ -13,11 +13,11 @@ import {
   getPostBySlug,
   getPostsSorted,
 } from "@/lib/blog/posts";
-import { siteConfig } from "@/lib/content";
-
-const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
-  "https://www.oursacredreference.com";
+import { buildPageMetadata } from "@/lib/seo/site";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { blogPostingJsonLd } from "@/lib/seo/json-ld";
+import { Breadcrumbs } from "@/components/seo/Breadcrumbs";
+import { RelatedPaths } from "@/components/seo/RelatedPaths";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -33,56 +33,48 @@ export async function generateMetadata({
   const { slug } = await params;
   const post = getPostBySlug(slug);
   if (!post) {
-    return { title: "Article not found" };
+    return { title: "Article not found", robots: { index: false } };
   }
 
-  const url = `${siteUrl}/blog/${post.slug}`;
   const title = post.subtitle
     ? `${post.title} — ${post.subtitle}`
     : post.title;
 
   return {
-    title,
-    description: post.description,
-    authors: [{ name: post.author }],
-    openGraph: {
-      type: "article",
+    ...buildPageMetadata({
       title,
       description: post.description,
-      url,
-      siteName: siteConfig.name,
+      path: `/blog/${post.slug}`,
+      type: "article",
       publishedTime: new Date(post.date).toISOString(),
       authors: [post.author],
-      images: post.coverImage
-        ? [
-            {
-              url: post.coverImage,
-              width: 1200,
-              height: 630,
-              alt: post.title,
-            },
-          ]
-        : undefined,
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description: post.description,
       images: post.coverImage ? [post.coverImage] : undefined,
+      keywords: [
+        post.category,
+        "Sacred Reference",
+        "Michele Castro",
+        "somatic healing essay",
+        "felt sense",
+        "Path of Remembering",
+        "Dark Goddess",
+        "embodied spirituality",
+        "Divine Feminine",
+      ],
+    }),
+    openGraph: {
+      ...buildPageMetadata({
+        title,
+        description: post.description,
+        path: `/blog/${post.slug}`,
+        type: "article",
+        publishedTime: new Date(post.date).toISOString(),
+        authors: [post.author],
+        images: post.coverImage ? [post.coverImage] : undefined,
+      }).openGraph,
+      type: "article",
+      publishedTime: new Date(post.date).toISOString(),
+      authors: [post.author],
     },
-    alternates: {
-      canonical: url,
-    },
-    keywords: [
-      post.category,
-      "Sacred Reference",
-      "Michele Castro",
-      "somatic",
-      "felt sense",
-      "Path of Remembering",
-      "Dark Goddess",
-      "embodied spirituality",
-    ],
   };
 }
 
@@ -91,7 +83,6 @@ export default async function BlogPostPage({ params }: PageProps) {
   const post = getPostBySlug(slug);
   if (!post) notFound();
 
-  const url = `${siteUrl}/blog/${post.slug}`;
   const published = new Date(post.date);
   const dateLabel = published.toLocaleDateString("en-US", {
     month: "long",
@@ -99,45 +90,17 @@ export default async function BlogPostPage({ params }: PageProps) {
     year: "numeric",
   });
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Article",
-    headline: post.subtitle
-      ? `${post.title}: ${post.subtitle}`
-      : post.title,
-    description: post.description,
-    image: post.coverImage ? [post.coverImage] : undefined,
-    datePublished: published.toISOString(),
-    dateModified: published.toISOString(),
-    author: {
-      "@type": "Person",
-      name: post.author,
-      url: `${siteUrl}/about`,
-    },
-    publisher: {
-      "@type": "Organization",
-      name: siteConfig.name,
-      url: siteUrl,
-    },
-    mainEntityOfPage: {
-      "@type": "WebPage",
-      "@id": url,
-    },
-    articleSection: post.category,
-  };
-
   const related = getPostsSorted()
     .filter((p) => p.slug !== post.slug)
     .slice(0, 2);
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <JsonLd data={blogPostingJsonLd(post)} />
 
-      <article>
+      <article itemScope itemType="https://schema.org/BlogPosting">
+        <meta itemProp="datePublished" content={post.date} />
+        <meta itemProp="author" content={post.author} />
         <header className="relative bg-sacred-gradient py-16 sm:py-24 overflow-hidden">
           {post.coverImage && (
             <div className="absolute inset-0 opacity-25">
@@ -153,6 +116,14 @@ export default async function BlogPostPage({ params }: PageProps) {
             </div>
           )}
           <div className="relative mx-auto max-w-3xl px-5 sm:px-8">
+            <Breadcrumbs
+              light
+              className="mb-6"
+              items={[
+                { name: "Blog", path: "/blog" },
+                { name: post.title, path: `/blog/${post.slug}` },
+              ]}
+            />
             <Link
               href="/blog"
               className="inline-flex items-center gap-2 text-sm text-cream/70 hover:text-cream transition-colors mb-8"
@@ -163,7 +134,10 @@ export default async function BlogPostPage({ params }: PageProps) {
             <Badge className="mb-4 !bg-gold/20 !text-gold-soft">
               {post.category}
             </Badge>
-            <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl text-cream leading-tight">
+            <h1
+              itemProp="headline"
+              className="font-serif text-3xl sm:text-4xl lg:text-5xl text-cream leading-tight"
+            >
               {post.title}
             </h1>
             {post.subtitle && (
@@ -189,7 +163,9 @@ export default async function BlogPostPage({ params }: PageProps) {
         </header>
 
         <Section className="bg-cream" narrow>
-          <BlogArticleBody body={post.body} />
+          <div itemProp="articleBody">
+            <BlogArticleBody body={post.body} />
+          </div>
 
           <footer className="mt-14 pt-8 border-t border-border">
             <p className="text-sm text-muted leading-relaxed">
@@ -200,7 +176,19 @@ export default async function BlogPostPage({ params }: PageProps) {
               >
                 {post.author}
               </Link>{" "}
-              for Sacred Reference — a Path of Remembering.
+              for Sacred Reference — a Path of Remembering. Explore the{" "}
+              <Link href="/approach" className="text-teal hover:underline">
+                approach
+              </Link>
+              ,{" "}
+              <Link href="/offerings" className="text-teal hover:underline">
+                offerings
+              </Link>
+              , or{" "}
+              <Link href="/book-session" className="text-teal hover:underline">
+                book a free discovery session
+              </Link>
+              .
             </p>
             <div className="mt-6 flex flex-col sm:flex-row gap-3">
               <Button href="/book-session" variant="gold">
@@ -238,6 +226,10 @@ export default async function BlogPostPage({ params }: PageProps) {
             </ul>
           </Section>
         )}
+
+        <Section className="bg-cream" narrow>
+          <RelatedPaths excludeHref="/blog" />
+        </Section>
       </article>
 
       <CTABanner />

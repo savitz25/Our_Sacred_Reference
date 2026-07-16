@@ -12,12 +12,26 @@ import { Section, SectionHeader } from "@/components/ui/Section";
 import { approachPillars, approachHeart, mission } from "@/lib/content";
 import { CTABanner } from "@/components/home/CTABanner";
 import { cn } from "@/lib/utils";
+import { buildPageMetadata } from "@/lib/seo/site";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { approachItemListJsonLd } from "@/lib/seo/json-ld";
+import { Breadcrumbs } from "@/components/seo/Breadcrumbs";
+import { RelatedPaths } from "@/components/seo/RelatedPaths";
 
-export const metadata: Metadata = {
-  title: "Mytho-Shamanic Approach",
+export const metadata: Metadata = buildPageMetadata({
+  title: "Mytho-Shamanic Approach — Seven Pillars of Embodied Healing",
   description:
-    "The Sacred Reference Approach — seven pillars of embodied healing. A Path of Remembering through felt sense, somatic practice, and mytho-shamanic wisdom.",
-};
+    "Sacred Reference approach: felt sense, somatic healing, inner child, mytho-shamanic practice, Jungian depth, Divine Mother, and embodied spirituality. A Path of Remembering where symptoms become soul-language.",
+  path: "/approach",
+  keywords: [
+    "mytho-shamanic approach",
+    "felt sense somatic healing",
+    "seven pillars embodied healing",
+    "Divine Mother spirituality",
+    "Jungian somatic coaching",
+    "inner child integration felt sense",
+  ],
+});
 
 const iconMap = {
   ear: Ear,
@@ -49,8 +63,14 @@ const extendedNarrative: Record<string, string> = {
 export default function ApproachPage() {
   return (
     <>
+      <JsonLd data={approachItemListJsonLd()} />
       <section className="relative bg-sacred-gradient py-20 sm:py-28">
         <div className="mx-auto max-w-6xl px-5 sm:px-8">
+          <Breadcrumbs
+            light
+            className="mb-6"
+            items={[{ name: "Approach", path: "/approach" }]}
+          />
           <p className="text-gold-soft text-sm font-medium tracking-[0.15em] uppercase mb-4">
             Methodology
           </p>
@@ -144,6 +164,10 @@ export default function ApproachPage() {
             {mission.closing[1]}
           </p>
         </div>
+      </Section>
+
+      <Section className="bg-cream-dark/30" narrow>
+        <RelatedPaths excludeHref="/approach" />
       </Section>
 
       <CTABanner />

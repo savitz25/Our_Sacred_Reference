@@ -6,35 +6,64 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { getPostsSorted } from "@/lib/blog/posts";
 import { CTABanner } from "@/components/home/CTABanner";
-import { siteConfig } from "@/lib/content";
+import { buildPageMetadata } from "@/lib/seo/site";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { Breadcrumbs } from "@/components/seo/Breadcrumbs";
+import { RelatedPaths } from "@/components/seo/RelatedPaths";
+import { getSiteUrl } from "@/lib/seo/site";
 
-const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
-  "https://www.oursacredreference.com";
-
-export const metadata: Metadata = {
-  title: "Blog & Resources",
+export const metadata: Metadata = buildPageMetadata({
+  title: "Blog — Felt Sense, Somatic Essays & Path of Remembering",
   description:
-    "Articles and reflections by Michele Castro on felt sense, somatic embodiment, the Dark Goddess, and a Path of Remembering.",
-  alternates: {
-    canonical: `${siteUrl}/blog`,
-  },
-  openGraph: {
-    title: `Blog & Resources | ${siteConfig.name}`,
-    description:
-      "Essays on deconstructing walls, felt sense, mytho-shamanic practice, and embodied spirituality.",
-    url: `${siteUrl}/blog`,
-    type: "website",
-  },
-};
+    "Articles by Michele Castro on felt sense, deconstructing walls, Dark Goddess, somatic embodiment, and mytho-shamanic spirituality. Essays for the Path of Remembering.",
+  path: "/blog",
+  keywords: [
+    "somatic healing blog",
+    "felt sense essays",
+    "Divine Feminine writing",
+    "mytho-shamanic blog",
+    "Michele Castro articles",
+    "Path of Remembering blog",
+  ],
+});
 
 export default function BlogPage() {
   const posts = getPostsSorted();
+  const site = getSiteUrl();
+
+  const blogListJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Blog",
+    name: "Sacred Reference Blog",
+    description:
+      "Essays on mytho-shamanic somatic healing, felt sense, and embodied spirituality.",
+    url: `${site}/blog`,
+    publisher: {
+      "@type": "Organization",
+      name: "Sacred Reference",
+      url: site,
+    },
+    blogPost: posts.map((p) => ({
+      "@type": "BlogPosting",
+      headline: p.title,
+      description: p.description,
+      datePublished: p.date,
+      url: `${site}/blog/${p.slug}`,
+      author: { "@type": "Person", name: p.author },
+    })),
+  };
 
   return (
     <>
+      <JsonLd data={blogListJsonLd} />
+
       <section className="relative bg-sacred-gradient py-20 sm:py-28">
         <div className="mx-auto max-w-6xl px-5 sm:px-8">
+          <Breadcrumbs
+            light
+            className="mb-6"
+            items={[{ name: "Blog", path: "/blog" }]}
+          />
           <p className="text-gold-soft text-sm font-medium tracking-[0.15em] uppercase mb-4">
             Resources
           </p>
@@ -94,6 +123,10 @@ export default function BlogPage() {
             </article>
           ))}
         </div>
+      </Section>
+
+      <Section className="bg-cream-dark/30" narrow>
+        <RelatedPaths excludeHref="/blog" />
       </Section>
 
       <CTABanner />

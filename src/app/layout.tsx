@@ -2,73 +2,88 @@ import type { Metadata, Viewport } from "next";
 import { Playfair_Display, Inter } from "next/font/google";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
-import { siteConfig } from "@/lib/content";
+import { getSiteUrl, SEO } from "@/lib/seo/site";
 import "./globals.css";
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
   subsets: ["latin"],
   display: "swap",
+  preload: true,
 });
 
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
   display: "swap",
+  preload: true,
 });
 
-const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
-  "https://www.oursacredreference.com";
+const siteUrl = getSiteUrl();
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: `${siteConfig.name} | ${siteConfig.shortTagline}`,
-    template: `%s | ${siteConfig.name}`,
+    default: SEO.defaultTitle,
+    template: SEO.titleTemplate,
   },
-  description: siteConfig.description,
-  keywords: [
-    "mytho-shamanic",
-    "somatic healing",
-    "Path of Remembering",
-    "felt sense",
-    "Divine Mother",
-    "Jungian depth psychology",
-    "embodied spirituality",
-    "feminine wisdom",
-    "online coaching sessions",
-    "Sacred Reference",
-    "Michele Castro",
+  description: SEO.defaultDescription,
+  applicationName: SEO.siteName,
+  keywords: [...SEO.keywords],
+  authors: [
+    { name: SEO.practitioner, url: `${siteUrl}/about` },
+    { name: SEO.siteName, url: siteUrl },
   ],
-  authors: [{ name: "Michele Castro" }, { name: "Sacred Reference" }],
+  creator: SEO.practitioner,
+  publisher: SEO.siteName,
+  category: "Health & Wellness",
+  classification: "Somatic Coaching, Embodied Spirituality, Mytho-Shamanic Practice",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
   openGraph: {
-    title: `${siteConfig.name} | ${siteConfig.shortTagline}`,
-    description: siteConfig.description,
+    title: SEO.defaultTitle,
+    description: SEO.defaultDescription,
     type: "website",
-    locale: "en_US",
-    siteName: siteConfig.name,
+    locale: SEO.locale,
+    siteName: SEO.siteName,
     url: siteUrl,
   },
   twitter: {
     card: "summary_large_image",
-    title: `${siteConfig.name} | ${siteConfig.shortTagline}`,
-    description: siteConfig.description,
+    title: SEO.defaultTitle,
+    description: SEO.defaultDescription,
   },
   robots: {
     index: true,
     follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
   },
   alternates: {
     canonical: siteUrl,
   },
+  other: {
+    "theme-color": "#0A3D33",
+  },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0A3D33",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#0A3D33" },
+    { media: "(prefers-color-scheme: dark)", color: "#062822" },
+  ],
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
+  colorScheme: "light",
 };
 
 export default function RootLayout({

@@ -1,7 +1,14 @@
+import type { Metadata } from "next";
 import { PortalNav } from "@/components/portal/PortalNav";
 import { requireProfile } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
+
+/** Client portal — private, noindex */
+export const metadata: Metadata = {
+  title: "Client Portal",
+  robots: { index: false, follow: false, googleBot: { index: false, follow: false } },
+};
 
 export default async function PortalLayout({
   children,

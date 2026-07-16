@@ -9,6 +9,7 @@ import {
 import { serviceNatureExpanded } from "@/lib/legal";
 
 export const metadata: Metadata = {
+  robots: { index: true, follow: true },
   title: "Terms of Service",
   description:
     "Terms of Service for Sacred Reference alternative health and embodied coaching sessions.",

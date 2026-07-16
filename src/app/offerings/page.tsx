@@ -6,18 +6,37 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { offerings } from "@/lib/content";
 import { CTABanner } from "@/components/home/CTABanner";
+import { buildPageMetadata } from "@/lib/seo/site";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { professionalServiceJsonLd } from "@/lib/seo/json-ld";
+import { Breadcrumbs } from "@/components/seo/Breadcrumbs";
+import { RelatedPaths } from "@/components/seo/RelatedPaths";
 
-export const metadata: Metadata = {
-  title: "Offerings & Sessions",
+export const metadata: Metadata = buildPageMetadata({
+  title: "Offerings & Sessions — Online Mytho-Shamanic Somatic Healing",
   description:
-    "Free discovery sessions and ongoing mytho-shamanic somatic work with Michele — secure online video and private session library.",
-};
+    "Free discovery sessions, individual mytho-shamanic somatic work, and ongoing embodied path packages with Michele Castro. Secure online video and private session library.",
+  path: "/offerings",
+  keywords: [
+    "online somatic healing sessions",
+    "free discovery session coaching",
+    "mytho-shamanic individual sessions",
+    "embodied spirituality packages",
+    "book somatic coaching online",
+  ],
+});
 
 export default function OfferingsPage() {
   return (
     <>
+      <JsonLd data={professionalServiceJsonLd()} />
       <section className="relative bg-sacred-gradient py-20 sm:py-28">
         <div className="mx-auto max-w-6xl px-5 sm:px-8">
+          <Breadcrumbs
+            light
+            className="mb-6"
+            items={[{ name: "Offerings", path: "/offerings" }]}
+          />
           <p className="text-gold-soft text-sm font-medium tracking-[0.15em] uppercase mb-4">
             Offerings
           </p>
@@ -122,6 +141,10 @@ export default function OfferingsPage() {
             </li>
           ))}
         </ol>
+      </Section>
+
+      <Section className="bg-cream-dark/30" narrow>
+        <RelatedPaths excludeHref="/offerings" />
       </Section>
 
       <CTABanner />

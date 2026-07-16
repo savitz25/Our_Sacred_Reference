@@ -4,18 +4,38 @@ import { Section, SectionHeader } from "@/components/ui/Section";
 import { Button } from "@/components/ui/Button";
 import { micheleBio, mission, siteConfig } from "@/lib/content";
 import { CTABanner } from "@/components/home/CTABanner";
+import { buildPageMetadata } from "@/lib/seo/site";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { personJsonLd } from "@/lib/seo/json-ld";
+import { Breadcrumbs } from "@/components/seo/Breadcrumbs";
+import { RelatedPaths } from "@/components/seo/RelatedPaths";
 
-export const metadata: Metadata = {
-  title: "About Michele Castro",
+export const metadata: Metadata = buildPageMetadata({
+  title: "About Michele Castro — Mytho-Shamanic Somatic Practitioner",
   description:
-    "Michele Castro — mother, mytho-shamanic somatic practitioner, and guide on a Path of Remembering. Full biography from Sacred Reference.",
-};
+    "Michele Castro — mother, mytho-shamanic somatic practitioner, Divine Mother devotion, and guide on a Path of Remembering. Full biography: lineage, underworld journey, Isis, and embodied spirituality.",
+  path: "/about",
+  keywords: [
+    "Michele Castro",
+    "mytho-shamanic practitioner",
+    "somatic healing coach biography",
+    "Divine Mother embodiment",
+    "transpersonal psychology somatic",
+    "Sacred Reference founder",
+  ],
+});
 
 export default function AboutPage() {
   return (
     <>
+      <JsonLd data={personJsonLd()} />
       <section className="relative bg-sacred-gradient py-20 sm:py-28 overflow-hidden">
         <div className="relative mx-auto max-w-6xl px-5 sm:px-8">
+          <Breadcrumbs
+            light
+            className="mb-6"
+            items={[{ name: "About", path: "/about" }]}
+          />
           <p className="text-gold-soft text-sm font-medium tracking-[0.15em] uppercase mb-4">
             About
           </p>
@@ -110,6 +130,10 @@ export default function AboutPage() {
             </Button>
           </div>
         </div>
+      </Section>
+
+      <Section className="bg-cream-dark/30" narrow>
+        <RelatedPaths excludeHref="/about" />
       </Section>
 
       <CTABanner />
