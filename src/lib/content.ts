@@ -230,35 +230,9 @@ export const offerings = [
   },
 ];
 
-export const blogPosts = [
-  {
-    slug: "felt-sense-as-doorway",
-    title: "The Felt Sense as Doorway",
-    excerpt:
-      "Before thoughts and stories arise, the body speaks a subtler language. Learning to listen is the beginning of embodied healing — where symptoms become soul-language.",
-    category: "Felt Sense",
-    date: "2026-03-12",
-    readTime: "6 min",
-  },
-  {
-    slug: "myth-as-lived-experience",
-    title: "Myth as Lived Experience",
-    excerpt:
-      "Mytho-shamanic practice invites myths, dreams, and symbols to become living guides — not metaphors alone, but companions on a Path of Remembering.",
-    category: "Mytho-Shamanic",
-    date: "2026-02-28",
-    readTime: "8 min",
-  },
-  {
-    slug: "nervous-system-as-vessel",
-    title: "The Nervous System as Vessel",
-    excerpt:
-      "Rather than transcending the body, we cultivate the capacity to inhabit it — so trauma, creativity, and spiritual insight can integrate. Gently. Curiously. Reverently.",
-    category: "Somatic Healing",
-    date: "2026-02-10",
-    readTime: "7 min",
-  },
-];
+/** Blog list + full articles live in `@/lib/blog/posts` */
+export { blogPosts, getPostsSorted, getPostBySlug } from "@/lib/blog/posts";
+
 
 export const videoCategories = [
   "All",

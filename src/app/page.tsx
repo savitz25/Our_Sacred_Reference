@@ -6,13 +6,16 @@ import { CTABanner } from "@/components/home/CTABanner";
 import { DisclaimerBanner } from "@/components/legal/DisclaimerBanner";
 import { Section, SectionHeader } from "@/components/ui/Section";
 import { Button } from "@/components/ui/Button";
-import { blogPosts, offerings } from "@/lib/content";
+import { offerings } from "@/lib/content";
+import { getPostsSorted } from "@/lib/blog/posts";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 export default function HomePage() {
+  const blogPosts = getPostsSorted().slice(0, 3);
+
   return (
     <>
       <Hero />
@@ -72,11 +75,15 @@ export default function HomePage() {
         <SectionHeader
           eyebrow="Blog & Resources"
           title="Reflections for the Path of Remembering"
-          description="Articles on felt sense, myth as lived experience, feminine wisdom, and embodied spirituality."
+          description="Essays from Michele on felt sense, deconstructing survival walls, and embodied spirituality."
         />
         <div className="grid gap-6 md:grid-cols-3">
           {blogPosts.map((post) => (
-            <Link key={post.slug} href={`/blog#${post.slug}`} className="group">
+            <Link
+              key={post.slug}
+              href={`/blog/${post.slug}`}
+              className="group"
+            >
               <Card hover className="h-full">
                 <Badge variant="teal" className="mb-3">
                   {post.category}
@@ -84,6 +91,11 @@ export default function HomePage() {
                 <h3 className="font-serif text-xl text-forest group-hover:text-teal transition-colors mb-2">
                   {post.title}
                 </h3>
+                {post.subtitle && (
+                  <p className="text-sm text-ink-soft italic mb-2 line-clamp-2">
+                    {post.subtitle}
+                  </p>
+                )}
                 <p className="text-sm text-ink-soft leading-relaxed mb-4">
                   {post.excerpt}
                 </p>
