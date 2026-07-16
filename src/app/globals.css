@@ -1,0 +1,168 @@
+@import "tailwindcss";
+
+:root {
+  /* Sacred Reference palette */
+  --forest: #0a3d33;
+  --forest-deep: #062822;
+  --forest-light: #0f5245;
+  --gold: #d4a017;
+  --gold-soft: #e8c04a;
+  --gold-muted: #b8860b;
+  --cream: #f5f0e8;
+  --cream-dark: #ebe4d6;
+  --cream-deeper: #e0d6c4;
+  --teal: #2a8c7e;
+  --teal-light: #3ba99a;
+  --teal-muted: #1f6b60;
+  --ink: #1a2e28;
+  --ink-soft: #3d524a;
+  --muted: #6b7c75;
+  --white: #fffdf9;
+  --border: rgba(10, 61, 51, 0.12);
+  --shadow: 0 4px 24px rgba(10, 61, 51, 0.08);
+  --shadow-lg: 0 12px 40px rgba(10, 61, 51, 0.12);
+}
+
+@theme inline {
+  --color-forest: var(--forest);
+  --color-forest-deep: var(--forest-deep);
+  --color-forest-light: var(--forest-light);
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-gold-muted: var(--gold-muted);
+  --color-cream: var(--cream);
+  --color-cream-dark: var(--cream-dark);
+  --color-cream-deeper: var(--cream-deeper);
+  --color-teal: var(--teal);
+  --color-teal-light: var(--teal-light);
+  --color-teal-muted: var(--teal-muted);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-muted: var(--muted);
+  --color-white: var(--white);
+  --color-border: var(--border);
+  --font-serif: var(--font-playfair);
+  --font-sans: var(--font-inter);
+  --shadow-soft: var(--shadow);
+  --shadow-elevated: var(--shadow-lg);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--font-inter), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: rgba(42, 140, 126, 0.25);
+  color: var(--forest-deep);
+}
+
+/* Typography helpers */
+.font-serif {
+  font-family: var(--font-playfair), Georgia, "Times New Roman", serif;
+}
+
+/* Soft gradient backgrounds */
+.bg-sacred-gradient {
+  background: linear-gradient(
+    160deg,
+    var(--forest-deep) 0%,
+    var(--forest) 45%,
+    var(--teal-muted) 100%
+  );
+}
+
+.bg-cream-gradient {
+  background: linear-gradient(
+    180deg,
+    var(--cream) 0%,
+    var(--cream-dark) 50%,
+    var(--cream) 100%
+  );
+}
+
+.bg-gold-shimmer {
+  background: linear-gradient(
+    135deg,
+    var(--gold-muted) 0%,
+    var(--gold) 50%,
+    var(--gold-soft) 100%
+  );
+}
+
+/* Subtle fade-in for sections */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.7s ease-out both;
+}
+
+.animate-fade-up-delay-1 {
+  animation: fade-up 0.7s ease-out 0.1s both;
+}
+
+.animate-fade-up-delay-2 {
+  animation: fade-up 0.7s ease-out 0.2s both;
+}
+
+.animate-fade-up-delay-3 {
+  animation: fade-up 0.7s ease-out 0.3s both;
+}
+
+/* Focus styles for accessibility */
+:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 3px;
+}
+
+/* Custom scrollbar */
+@media (min-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--cream-dark);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--forest-light);
+    border-radius: 5px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--teal);
+  }
+}
+
+/* Portal video grid aspect */
+.aspect-video-card {
+  aspect-ratio: 16 / 10;
+}
+
+/* Reduce motion preference */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .animate-fade-up,
+  .animate-fade-up-delay-1,
+  .animate-fade-up-delay-2,
+  .animate-fade-up-delay-3 {
+    animation: none;
+  }
+}
