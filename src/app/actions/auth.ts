@@ -142,6 +142,7 @@ export async function signOut() {
 /**
  * Server-side account provisioning for booking flow.
  * Uses service role: creates user if needed, signs them in.
+ * Always returns a result object — never throws to the client.
  */
 export async function createUserForBooking(input: {
   email: string;
@@ -152,109 +153,178 @@ export async function createUserForBooking(input: {
 }): Promise<
   AuthResult & { userId?: string; alreadyExisted?: boolean }
 > {
-  const email = input.email.trim().toLowerCase();
-  const admin = createAdminClient();
-  const meta = {
-    full_name: input.fullName,
-    phone: input.phone,
-    intention: input.intention,
-  };
-
-  const { data: created, error: createError } =
-    await admin.auth.admin.createUser({
-      email,
-      password: input.password,
-      email_confirm: true,
-      user_metadata: meta,
-    });
-
-  let userId: string | undefined = created.user?.id;
-  let alreadyExisted = false;
-
-  if (createError) {
-    const msg = createError.message.toLowerCase();
-    const isDuplicate =
-      msg.includes("already") ||
-      msg.includes("registered") ||
-      msg.includes("exists");
-
-    if (!isDuplicate) {
-      return { success: false, error: createError.message };
+  try {
+    const email = input.email.trim().toLowerCase();
+    if (!email || !input.password || input.password.length < 8) {
+      return {
+        success: false,
+        error: "Valid email and password (8+ characters) are required.",
+      };
     }
 
-    alreadyExisted = true;
+    let admin;
+    try {
+      admin = createAdminClient();
+    } catch (e) {
+      console.error("[auth] createAdminClient:", e);
+      return {
+        success: false,
+        error:
+          "Account service is temporarily unavailable. Please try again later.",
+      };
+    }
 
-    const { data: existingProfile } = await admin
-      .from("profiles")
-      .select("id")
-      .eq("email", email)
-      .maybeSingle();
+    const meta = {
+      full_name: input.fullName,
+      phone: input.phone,
+      intention: input.intention,
+    };
 
-    if (existingProfile) {
-      userId = existingProfile.id;
-      await admin.auth.admin.updateUserById(userId, {
+    const { data: created, error: createError } =
+      await admin.auth.admin.createUser({
+        email,
         password: input.password,
+        email_confirm: true,
         user_metadata: meta,
       });
-    } else {
-      const { data: listed } = await admin.auth.admin.listUsers({
-        page: 1,
-        perPage: 1000,
-      });
-      const found = listed?.users?.find(
-        (u) => u.email?.toLowerCase() === email
+
+    let userId: string | undefined = created.user?.id;
+    let alreadyExisted = false;
+
+    if (createError) {
+      const msg = createError.message.toLowerCase();
+      const isDuplicate =
+        msg.includes("already") ||
+        msg.includes("registered") ||
+        msg.includes("exists") ||
+        msg.includes("duplicate");
+
+      if (!isDuplicate) {
+        console.error("[auth] createUser:", createError.message);
+        return { success: false, error: createError.message };
+      }
+
+      alreadyExisted = true;
+
+      // Prefer profiles lookup (fast) over listing all auth users
+      const { data: existingProfile } = await admin
+        .from("profiles")
+        .select("id")
+        .eq("email", email)
+        .maybeSingle();
+
+      if (existingProfile?.id) {
+        userId = existingProfile.id;
+      } else {
+        // Paginate auth users (avoid huge single page)
+        let foundId: string | undefined;
+        for (let page = 1; page <= 10 && !foundId; page++) {
+          const { data: listed, error: listErr } =
+            await admin.auth.admin.listUsers({
+              page,
+              perPage: 200,
+            });
+          if (listErr) {
+            console.error("[auth] listUsers:", listErr.message);
+            break;
+          }
+          const found = listed.users.find(
+            (u) => u.email?.toLowerCase() === email
+          );
+          if (found) foundId = found.id;
+          if (listed.users.length < 200) break;
+        }
+        if (!foundId) {
+          return {
+            success: false,
+            error:
+              "An account with this email already exists. Please sign in with your password, then book from the portal.",
+          };
+        }
+        userId = foundId;
+      }
+
+      const { error: updateErr } = await admin.auth.admin.updateUserById(
+        userId!,
+        {
+          password: input.password,
+          email_confirm: true,
+          user_metadata: meta,
+        }
       );
-      if (!found) {
+      if (updateErr) {
+        console.warn("[auth] updateUserById:", updateErr.message);
+        // Continue — user may still sign in with old password
+      }
+    }
+
+    if (!userId) {
+      return { success: false, error: "Failed to provision user account." };
+    }
+
+    const { error: profileErr } = await admin.from("profiles").upsert({
+      id: userId,
+      email,
+      full_name: input.fullName,
+      phone: input.phone ?? null,
+      intention: input.intention ?? null,
+      role: "client",
+    });
+    if (profileErr) {
+      console.warn("[auth] profile upsert:", profileErr.message);
+      // Profile trigger may have created the row; continue
+    }
+
+    try {
+      const supabase = await createClient();
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password: input.password,
+      });
+
+      if (signInError) {
+        console.warn("[auth] signIn after booking:", signInError.message);
         return {
-          success: false,
-          error:
-            "An account with this email exists but could not be loaded. Please sign in first.",
+          success: true,
+          userId,
+          alreadyExisted,
+          message:
+            "Account ready. Please sign in with your email and password to open the portal.",
         };
       }
-      userId = found.id;
-      await admin.auth.admin.updateUserById(userId, {
-        password: input.password,
-        user_metadata: meta,
-      });
+    } catch (e) {
+      console.warn("[auth] signIn threw:", e);
+      return {
+        success: true,
+        userId,
+        alreadyExisted,
+        message:
+          "Account ready. Please sign in with your email and password to open the portal.",
+      };
     }
-  }
 
-  if (!userId) {
-    return { success: false, error: "Failed to provision user" };
-  }
+    try {
+      revalidatePath("/", "layout");
+    } catch {
+      /* ignore */
+    }
 
-  await admin.from("profiles").upsert({
-    id: userId,
-    email,
-    full_name: input.fullName,
-    phone: input.phone ?? null,
-    intention: input.intention ?? null,
-    role: "client",
-  });
-
-  const supabase = await createClient();
-  const { error: signInError } = await supabase.auth.signInWithPassword({
-    email,
-    password: input.password,
-  });
-
-  if (signInError) {
     return {
       success: true,
       userId,
       alreadyExisted,
-      message:
-        "Account ready. Please sign in with your email and password to access the portal.",
+      message: alreadyExisted
+        ? "Welcome back — you're signed in."
+        : "Account created and signed in.",
+    };
+  } catch (e) {
+    console.error("[auth] createUserForBooking unhandled:", e);
+    return {
+      success: false,
+      error:
+        e instanceof Error
+          ? e.message
+          : "Could not create your account. Please try again.",
     };
   }
-
-  revalidatePath("/", "layout");
-  return {
-    success: true,
-    userId,
-    alreadyExisted,
-    message: alreadyExisted
-      ? "Welcome back — you're signed in."
-      : "Account created and signed in.",
-  };
 }

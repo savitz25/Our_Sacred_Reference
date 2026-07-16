@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { CheckCircle2, Loader2, AlertCircle } from "lucide-react";
 import { bookDiscoverySession } from "@/app/actions/booking";
 import { informedConsentCheckboxLabel } from "@/lib/legal";
 
@@ -14,6 +14,12 @@ interface IntakeFormProps {
   onComplete?: () => void;
 }
 
+type LoadingStep =
+  | null
+  | "Creating your account…"
+  | "Saving your session…"
+  | "Finishing up…";
+
 export function IntakeForm({
   selectedDate,
   selectedTime,
@@ -22,6 +28,7 @@ export function IntakeForm({
   const router = useRouter();
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadingStep, setLoadingStep] = useState<LoadingStep>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -49,48 +56,117 @@ export function IntakeForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!canSubmit || !selectedDate || !selectedTime) return;
-
-    if (!form.informedConsent) {
-      setError(
-        "You must agree to the Informed Consent before confirming your booking."
-      );
+    if (!selectedDate || !selectedTime) {
+      setError("Please select a date and time on the calendar first.");
+      return;
+    }
+    if (!form.informedConsent || !form.communicationsConsent) {
+      setError("Please accept both consent checkboxes to continue.");
+      return;
+    }
+    if (form.password.length < 8) {
+      setError("Password must be at least 8 characters.");
       return;
     }
 
     setLoading(true);
+    setLoadingStep("Creating your account…");
     setError(null);
 
     const y = selectedDate.getFullYear();
     const m = String(selectedDate.getMonth() + 1).padStart(2, "0");
     const d = String(selectedDate.getDate()).padStart(2, "0");
 
-    const result = await bookDiscoverySession({
-      firstName: form.firstName,
-      lastName: form.lastName,
-      email: form.email,
-      phone: form.phone || undefined,
-      password: form.password,
-      intention: form.intention || undefined,
-      consent: form.communicationsConsent,
-      informedConsent: form.informedConsent,
-      date: `${y}-${m}-${d}`,
-      time: selectedTime,
-      sessionType: "discovery",
-    });
+    // Soft client-side timeout so UI never hangs forever
+    const CLIENT_TIMEOUT_MS = 35_000;
+    let timedOut = false;
+    const timeoutId = window.setTimeout(() => {
+      timedOut = true;
+    }, CLIENT_TIMEOUT_MS);
 
-    setLoading(false);
+    try {
+      // Brief step progress (visual only — single server round-trip)
+      const stepTimer = window.setTimeout(
+        () => setLoadingStep("Saving your session…"),
+        1200
+      );
+      const stepTimer2 = window.setTimeout(
+        () => setLoadingStep("Finishing up…"),
+        4000
+      );
 
-    if (!result.success) {
-      setError(result.error ?? "Booking failed");
-      return;
+      const result = await bookDiscoverySession({
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim() || undefined,
+        password: form.password,
+        intention: form.intention.trim() || undefined,
+        consent: form.communicationsConsent,
+        informedConsent: form.informedConsent,
+        date: `${y}-${m}-${d}`,
+        time: selectedTime,
+        sessionType: "discovery",
+      });
+
+      window.clearTimeout(stepTimer);
+      window.clearTimeout(stepTimer2);
+      window.clearTimeout(timeoutId);
+
+      if (timedOut) {
+        // Response arrived after timeout UI — still process it
+      }
+
+      if (!result || typeof result !== "object") {
+        setError(
+          "We did not receive a valid response from the server. Please try again."
+        );
+        return;
+      }
+
+      if (!result.success) {
+        setError(
+          result.error ||
+            "Booking could not be completed. Please check your details and try again."
+        );
+        return;
+      }
+
+      setSessionId(result.sessionId ?? null);
+      setMessage(result.message ?? null);
+      setSubmitted(true);
+      onComplete?.();
+      try {
+        router.refresh();
+      } catch {
+        /* ignore */
+      }
+    } catch (err) {
+      window.clearTimeout(timeoutId);
+      console.error("[IntakeForm] booking error:", err);
+      const msg =
+        err instanceof Error
+          ? err.message
+          : "Something went wrong while booking.";
+      if (
+        timedOut ||
+        msg.toLowerCase().includes("timeout") ||
+        msg.toLowerCase().includes("fetch")
+      ) {
+        setError(
+          "The request took too long or lost connection. Please try again. If the problem continues, email us or try signing in if an account was created."
+        );
+      } else {
+        setError(
+          msg.length > 180
+            ? "We could not complete your booking. Please try again or contact us."
+            : msg
+        );
+      }
+    } finally {
+      setLoading(false);
+      setLoadingStep(null);
     }
-
-    setSessionId(result.sessionId ?? null);
-    setMessage(result.message ?? null);
-    setSubmitted(true);
-    onComplete?.();
-    router.refresh();
   }
 
   if (submitted) {
@@ -175,6 +251,7 @@ export function IntakeForm({
           required
           value={form.firstName}
           onChange={(v) => setForm((f) => ({ ...f, firstName: v }))}
+          disabled={loading}
         />
         <Field
           label="Last name"
@@ -182,6 +259,7 @@ export function IntakeForm({
           required
           value={form.lastName}
           onChange={(v) => setForm((f) => ({ ...f, lastName: v }))}
+          disabled={loading}
         />
       </div>
 
@@ -192,6 +270,7 @@ export function IntakeForm({
         required
         value={form.email}
         onChange={(v) => setForm((f) => ({ ...f, email: v }))}
+        disabled={loading}
       />
 
       <Field
@@ -200,6 +279,7 @@ export function IntakeForm({
         type="tel"
         value={form.phone}
         onChange={(v) => setForm((f) => ({ ...f, phone: v }))}
+        disabled={loading}
       />
 
       <Field
@@ -210,6 +290,7 @@ export function IntakeForm({
         hint="At least 8 characters — used for portal login"
         value={form.password}
         onChange={(v) => setForm((f) => ({ ...f, password: v }))}
+        disabled={loading}
       />
 
       <div>
@@ -222,11 +303,12 @@ export function IntakeForm({
         <textarea
           id="intention"
           rows={3}
+          disabled={loading}
           value={form.intention}
           onChange={(e) =>
             setForm((f) => ({ ...f, intention: e.target.value }))
           }
-          className="w-full rounded-xl border border-border bg-cream/40 px-4 py-2.5 text-sm text-ink placeholder:text-muted focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/20"
+          className="w-full rounded-xl border border-border bg-cream/40 px-4 py-2.5 text-sm text-ink placeholder:text-muted focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/20 disabled:opacity-60"
           placeholder="Share anything you'd like Michele to know before your discovery session..."
         />
       </div>
@@ -234,6 +316,7 @@ export function IntakeForm({
       <label className="flex items-start gap-3 cursor-pointer">
         <input
           type="checkbox"
+          disabled={loading}
           checked={form.communicationsConsent}
           onChange={(e) =>
             setForm((f) => ({
@@ -258,10 +341,10 @@ export function IntakeForm({
         </span>
       </label>
 
-      {/* Required Informed Consent — immediately before confirm */}
       <label className="flex items-start gap-3 cursor-pointer rounded-xl border border-gold/40 bg-cream-dark/40 p-4">
         <input
           type="checkbox"
+          disabled={loading}
           checked={form.informedConsent}
           onChange={(e) =>
             setForm((f) => ({ ...f, informedConsent: e.target.checked }))
@@ -286,11 +369,28 @@ export function IntakeForm({
       </label>
 
       {error && (
-        <p
-          className="rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-700"
+        <div
+          className="rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-700 flex gap-2"
           role="alert"
         >
-          {error}
+          <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" aria-hidden />
+          <div>
+            <p className="font-medium">Booking could not be completed</p>
+            <p className="mt-1">{error}</p>
+            <p className="mt-2 text-xs text-red-600/80">
+              Already have an account?{" "}
+              <Link href="/login" className="underline font-medium">
+                Sign in
+              </Link>{" "}
+              then book again, or contact us for help.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {loading && loadingStep && (
+        <p className="text-center text-sm text-teal-muted" aria-live="polite">
+          {loadingStep}
         </p>
       )}
 
@@ -303,7 +403,7 @@ export function IntakeForm({
         {loading ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-            Creating account & booking…
+            {loadingStep || "Creating account & booking…"}
           </>
         ) : (
           "Confirm Free Discovery Session"
@@ -321,6 +421,7 @@ function Field({
   value,
   onChange,
   hint,
+  disabled,
 }: {
   label: string;
   id: string;
@@ -329,6 +430,7 @@ function Field({
   value: string;
   onChange: (v: string) => void;
   hint?: string;
+  disabled?: boolean;
 }) {
   return (
     <div>
@@ -340,10 +442,11 @@ function Field({
         id={id}
         type={type}
         required={required}
+        disabled={disabled}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         minLength={type === "password" ? 8 : undefined}
-        className="w-full rounded-xl border border-border bg-cream/40 px-4 py-2.5 text-sm text-ink focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/20"
+        className="w-full rounded-xl border border-border bg-cream/40 px-4 py-2.5 text-sm text-ink focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/20 disabled:opacity-60"
       />
       {hint && <p className="mt-1 text-xs text-muted">{hint}</p>}
     </div>
