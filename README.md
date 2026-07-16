@@ -57,37 +57,33 @@ npm install
 
 ### 2. Environment variables
 
-Copy the root template to a local env file and fill in your Supabase keys:
+**Step A — copy the template**
 
 ```bash
 cp .env.example .env.local
 ```
 
-See [`.env.example`](./.env.example) for all variables.
+**Step B — fill in real values** in `.env.local` (never commit this file):
 
-**Required (app + auth)**
+| Variable | Where to get it |
+|----------|-----------------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Pre-filled in `.env.example` (`https://mbboakpdxgquntlohlix.supabase.co`) |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase → Project Settings → API → `anon` `public` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Project Settings → API → `service_role` (server only) |
+| `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` / `NEXT_PUBLIC_LIVEKIT_URL` | [LiveKit Cloud](https://cloud.livekit.io) project settings |
+| `SUPABASE_S3_ACCESS_KEY` / `SUPABASE_S3_SECRET_KEY` | Supabase → Storage → S3 Access Keys (for Egress uploads) |
+| `RESEND_API_KEY` | Optional — Resend dashboard |
 
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `NEXT_PUBLIC_SITE_URL`
+See [`.env.example`](./.env.example) for the full list with comments.
 
-**Required for real video + recording**
+**Step C — restart the dev server** so Next.js loads the new env vars:
 
-- `LIVEKIT_API_KEY`
-- `LIVEKIT_API_SECRET`
-- `NEXT_PUBLIC_LIVEKIT_URL` (e.g. `wss://xxx.livekit.cloud`)
-- `SUPABASE_S3_ACCESS_KEY` / `SUPABASE_S3_SECRET_KEY`  
-  Create under Supabase → **Storage → S3 Access Keys** so LiveKit Egress can write to the private `session-recordings` bucket.
+```bash
+# stop the running server (Ctrl+C), then:
+npm run dev
+```
 
-**Optional**
-
-- `RESEND_API_KEY` — email when a recording is ready  
-- FFmpeg on the server PATH — silence trim + loudnorm post-process (skipped on plain Vercel serverless)
-
-This project’s Supabase URL is typically `https://mbboakpdxgquntlohlix.supabase.co`.
-
-> Vercel: set the same variables in Project → Settings → Environment Variables.
+> Vercel production: set the same variables under Project → Settings → Environment Variables, then redeploy.
 
 ### 3. Apply database schema (required once)
 
