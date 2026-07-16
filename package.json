@@ -6,7 +6,9 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "setup:michele": "node --env-file=.env.local scripts/ensure-michele-admin.mjs",
+    "vercel:env-checklist": "node scripts/push-vercel-env.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.3",

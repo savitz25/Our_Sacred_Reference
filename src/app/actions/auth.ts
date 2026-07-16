@@ -16,14 +16,34 @@ export type AuthResult = {
   success: boolean;
   error?: string;
   message?: string;
+  /** Where the client should navigate after success */
+  redirectTo?: string;
 };
+
+async function postLoginDestination(userId: string): Promise<string> {
+  try {
+    const supabase = await createClient();
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", userId)
+      .maybeSingle();
+    if (profile?.role === "practitioner" || profile?.role === "admin") {
+      return "/admin";
+    }
+  } catch (e) {
+    console.warn("[auth] postLoginDestination:", e);
+  }
+  return "/portal";
+}
 
 export async function signInWithPassword(
   email: string,
-  password: string
+  password: string,
+  nextPath?: string | null
 ): Promise<AuthResult> {
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email: email.trim().toLowerCase(),
     password,
   });
@@ -33,13 +53,26 @@ export async function signInWithPassword(
   }
 
   revalidatePath("/", "layout");
-  return { success: true };
+
+  const safeNext =
+    nextPath && nextPath.startsWith("/") && !nextPath.startsWith("//")
+      ? nextPath
+      : null;
+
+  const redirectTo =
+    safeNext ||
+    (data.user
+      ? await postLoginDestination(data.user.id)
+      : "/portal");
+
+  return { success: true, redirectTo };
 }
 
 export async function signUpWithPassword(input: {
   email: string;
   password: string;
   fullName: string;
+  nextPath?: string | null;
 }): Promise<AuthResult> {
   const supabase = await createClient();
   const email = input.email.trim().toLowerCase();
@@ -57,9 +90,19 @@ export async function signUpWithPassword(input: {
     return { success: false, error: error.message };
   }
 
-  if (data.session) {
+  if (data.session && data.user) {
     revalidatePath("/", "layout");
-    return { success: true, message: "Account created. Welcome!" };
+    const safeNext =
+      input.nextPath &&
+      input.nextPath.startsWith("/") &&
+      !input.nextPath.startsWith("//")
+        ? input.nextPath
+        : null;
+    return {
+      success: true,
+      message: "Account created. Welcome!",
+      redirectTo: safeNext || (await postLoginDestination(data.user.id)),
+    };
   }
 
   return {
@@ -117,7 +160,6 @@ export async function createUserForBooking(input: {
     intention: input.intention,
   };
 
-  // Try create first
   const { data: created, error: createError } =
     await admin.auth.admin.createUser({
       email,
@@ -142,7 +184,6 @@ export async function createUserForBooking(input: {
 
     alreadyExisted = true;
 
-    // Lookup existing user via profiles table
     const { data: existingProfile } = await admin
       .from("profiles")
       .select("id")
@@ -156,7 +197,6 @@ export async function createUserForBooking(input: {
         user_metadata: meta,
       });
     } else {
-      // Fallback: page through users (small projects)
       const { data: listed } = await admin.auth.admin.listUsers({
         page: 1,
         perPage: 1000,

@@ -1,20 +1,39 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+function cleanEnv(value: string | undefined): string {
+  if (!value) return "";
+  let v = value.trim();
+  if (
+    (v.startsWith('"') && v.endsWith('"')) ||
+    (v.startsWith("'") && v.endsWith("'"))
+  ) {
+    v = v.slice(1, -1).trim();
+  }
+  return v;
+}
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+  const url = cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_URL);
+  const anonKey = cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+  const path = request.nextUrl.pathname;
+  const isPortal = path.startsWith("/portal");
+  const isAdmin = path.startsWith("/admin");
 
-  if (!url || !anonKey) {
+  const envOk =
+    Boolean(url && anonKey) &&
+    !url.includes("your-project-ref") &&
+    anonKey !== "your-anon-public-key" &&
+    anonKey.length >= 20;
+
+  if (!envOk) {
     console.warn(
-      "[middleware] Supabase public env missing — auth gates skipped"
+      "[middleware] Supabase public env missing or placeholder. " +
+        `url=${Boolean(url)} anon=${Boolean(anonKey)} path=${path}`
     );
-    // Still block /admin and /portal without a session cookie when misconfigured
-    // so we don't render half-broken pages anonymously.
-    const path = request.nextUrl.pathname;
-    if (path.startsWith("/portal") || path.startsWith("/admin")) {
+    if (isPortal || isAdmin) {
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = "/login";
       redirectUrl.searchParams.set("next", path);
@@ -45,10 +64,6 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const path = request.nextUrl.pathname;
-  const isPortal = path.startsWith("/portal");
-  const isAdmin = path.startsWith("/admin");
-
   if ((isPortal || isAdmin) && !user) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
@@ -56,7 +71,6 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  // Soft role gate for /admin in middleware (layout re-checks)
   if (isAdmin && user) {
     try {
       const { data: profile, error } = await supabase
@@ -76,7 +90,6 @@ export async function updateSession(request: NextRequest) {
         redirectUrl.searchParams.set("error", "not_authorized");
         return NextResponse.redirect(redirectUrl);
       }
-      // If profile missing or role null, allow through — layout will create/handle
     } catch (e) {
       console.error("[middleware] admin role check failed:", e);
     }
@@ -85,13 +98,27 @@ export async function updateSession(request: NextRequest) {
   if (path === "/login" && user) {
     const next = request.nextUrl.searchParams.get("next");
     const redirectUrl = request.nextUrl.clone();
+
     if (next && next.startsWith("/") && !next.startsWith("//")) {
       redirectUrl.pathname = next;
       redirectUrl.search = "";
-    } else {
-      redirectUrl.pathname = "/portal";
-      redirectUrl.searchParams.delete("next");
+      return NextResponse.redirect(redirectUrl);
     }
+
+    // Role-aware default destination after login
+    try {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .maybeSingle();
+      const role = profile?.role;
+      redirectUrl.pathname =
+        role === "practitioner" || role === "admin" ? "/admin" : "/portal";
+    } catch {
+      redirectUrl.pathname = "/portal";
+    }
+    redirectUrl.search = "";
     return NextResponse.redirect(redirectUrl);
   }
 

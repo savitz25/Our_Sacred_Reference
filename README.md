@@ -65,22 +65,34 @@ Fill in real values in `.env.local` (never commit this file):
 | `NEXT_PUBLIC_SUPABASE_URL` | Pre-filled (`mbboakpdxgquntlohlix`) |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase → Settings → API → anon public |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Settings → API → service_role |
-| `NEXT_PUBLIC_SITE_URL` | `http://localhost:3000` locally |
+| `NEXT_PUBLIC_SITE_URL` | `http://localhost:3000` locally; production HTTPS domain on Vercel |
 | `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` / `NEXT_PUBLIC_LIVEKIT_URL` | [LiveKit Cloud](https://cloud.livekit.io) |
 | `SUPABASE_S3_ACCESS_KEY` / `SUPABASE_S3_SECRET_KEY` | Supabase → Storage → S3 Access Keys |
 | `RESEND_API_KEY` | [Resend](https://resend.com) → API Keys |
 | `RESEND_FROM_EMAIL` | e.g. `Michele \| Sacred Reference <michele@oursacredreference.com>` |
-| `PRACTITIONER_NOTIFY_EMAIL` | `michele@oursacredreference.com` (booking/reminder CC recipients) |
+| `PRACTITIONER_NOTIFY_EMAIL` | `michele@oursacredreference.com` |
 
-Full comments: [`.env.example`](./.env.example).
+Full comments: [`.env.example`](./.env.example). Checklist: `npm run vercel:env-checklist`.
 
-**Restart the dev server** after editing env:
+#### Fix: “Supabase environment variables may be missing on Vercel”
+
+That login error means Production is missing public Supabase keys.
+
+1. Vercel → Project → **Settings → Environment Variables**
+2. Add for **Production** (and Preview):
+   - `NEXT_PUBLIC_SUPABASE_URL` = `https://mbboakpdxgquntlohlix.supabase.co`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` = (from Supabase API settings)
+   - `SUPABASE_SERVICE_ROLE_KEY` = (service_role — server only)
+   - `NEXT_PUBLIC_SITE_URL` = `https://your-production-domain`
+3. Do **not** wrap values in quotes in the Vercel UI
+4. **Redeploy** (Deployments → Redeploy) — required for `NEXT_PUBLIC_*` changes
+5. Confirm: `https://your-domain/api/health` → `"status":"ready"`
+
+**Restart the dev server** after editing local env:
 
 ```bash
 npm run dev
 ```
-
-Open [http://localhost:3000](http://localhost:3000). Health: [http://localhost:3000/api/health](http://localhost:3000/api/health).
 
 ### 3. Database migrations (once)
 
@@ -89,12 +101,25 @@ In [Supabase SQL Editor](https://supabase.com/dashboard/project/mbboakpdxgquntlo
 1. `supabase/migrations/001_initial_schema.sql`
 2. `supabase/migrations/002_consents.sql`
 3. `supabase/migrations/003_recording_egress.sql`
+4. `supabase/migrations/004_admin_profile_select.sql`
 
-Promote practitioner after signup:
+**Michele admin account** (password via env only — never commit):
+
+```bash
+# PowerShell example
+$env:MICHELE_PASSWORD="your-secure-password"
+npm run setup:michele
+```
+
+Or SQL for role only:
 
 ```sql
-update public.profiles set role = 'practitioner' where email = 'her@email.com';
+update public.profiles
+set role = 'practitioner'
+where email = 'michele@oursacredreference.com';
 ```
+
+Sign in: **[/login?next=/admin](/login?next=/admin)** — practitioners are sent to `/admin` after login.
 
 ### 4. Scripts
 
@@ -104,6 +129,8 @@ update public.profiles set role = 'practitioner' where email = 'her@email.com';
 | `npm run build` | Production build |
 | `npm run start` | Start production server |
 | `npm run lint` | ESLint |
+| `npm run setup:michele` | Ensure Michele practitioner user (needs `MICHELE_PASSWORD`) |
+| `npm run vercel:env-checklist` | Print Vercel env setup steps |
 
 ---
 

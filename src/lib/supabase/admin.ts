@@ -1,17 +1,20 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
+import {
+  getSupabasePublicEnv,
+  getSupabaseServiceRoleKey,
+} from "@/lib/supabase/env";
 
 /**
  * Service-role client — server-only. Never import in client components.
- * Used for auto account creation on booking and privileged writes.
  */
 export function createAdminClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const { url } = getSupabasePublicEnv();
+  const key = getSupabaseServiceRoleKey();
 
-  if (!url || !key) {
+  if (!key) {
     throw new Error(
-      "Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY"
+      "Missing SUPABASE_SERVICE_ROLE_KEY. Set it in Vercel Environment Variables (Production)."
     );
   }
 
