@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import {
+  appointmentRecipients,
   getFromAddress,
   getResendApiKey,
   getSiteUrl,
@@ -14,7 +15,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createSignedRecordingUrl } from "@/lib/storage/recordings";
 
 export type SendResult =
-  | { sent: true; id?: string }
+  | { sent: true; id?: string; recipients?: string[] }
   | { sent: false; reason: string };
 
 function getClient(): Resend | null {
@@ -24,23 +25,33 @@ function getClient(): Resend | null {
 }
 
 async function sendEmail(input: {
-  to: string;
+  to: string | string[];
   subject: string;
   html: string;
   tags?: { name: string; value: string }[];
+  replyTo?: string;
 }): Promise<SendResult> {
   const resend = getClient();
   if (!resend) {
     return { sent: false, reason: "RESEND_API_KEY not set" };
   }
 
+  const to = Array.isArray(input.to)
+    ? [...new Set(input.to.map((e) => e.trim().toLowerCase()).filter(Boolean))]
+    : [input.to.trim().toLowerCase()];
+
+  if (to.length === 0) {
+    return { sent: false, reason: "no recipients" };
+  }
+
   try {
     const { data, error } = await resend.emails.send({
       from: getFromAddress(),
-      to: [input.to],
+      to,
       subject: input.subject,
       html: input.html,
       tags: input.tags,
+      replyTo: input.replyTo || "michele@oursacredreference.com",
     });
 
     if (error) {
@@ -48,7 +59,7 @@ async function sendEmail(input: {
       return { sent: false, reason: error.message };
     }
 
-    return { sent: true, id: data?.id };
+    return { sent: true, id: data?.id, recipients: to };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Resend request failed";
     console.error("[resend]", msg);
@@ -56,7 +67,9 @@ async function sendEmail(input: {
   }
 }
 
-/** Booking confirmation — call after successful bookDiscoverySession */
+/**
+ * Booking confirmation — customer + Michele (appointment notification).
+ */
 export async function sendBookingConfirmationEmail(input: {
   to: string;
   fullName: string;
@@ -75,8 +88,10 @@ export async function sendBookingConfirmationEmail(input: {
     day: "numeric",
   });
 
+  const recipients = appointmentRecipients(input.to);
+
   return sendEmail({
-    to: input.to,
+    to: recipients,
     subject: `Confirmed: ${input.sessionTitle} — ${when}`,
     html: bookingConfirmationHtml(input),
     tags: [
@@ -86,7 +101,9 @@ export async function sendBookingConfirmationEmail(input: {
   });
 }
 
-/** Optional pre-session reminder */
+/**
+ * Pre-session reminder — customer + Michele (appointment notification).
+ */
 export async function sendSessionReminderEmail(input: {
   to: string;
   fullName: string;
@@ -100,8 +117,10 @@ export async function sendSessionReminderEmail(input: {
     return { sent: false, reason: "RESEND_API_KEY not set" };
   }
 
+  const recipients = appointmentRecipients(input.to);
+
   return sendEmail({
-    to: input.to,
+    to: recipients,
     subject: `Reminder: ${input.sessionTitle} soon`,
     html: sessionReminderHtml(input),
     tags: [
@@ -112,7 +131,8 @@ export async function sendSessionReminderEmail(input: {
 }
 
 /**
- * Recording ready — includes library link + optional time-limited signed URL.
+ * Recording ready — customer only (not an appointment notification).
+ * Includes library link + optional time-limited signed URL.
  */
 export async function sendRecordingReadyEmail(input: {
   userId: string;
@@ -142,11 +162,9 @@ export async function sendRecordingReadyEmail(input: {
 
   let playUrl: string | null = null;
   if (input.storagePath) {
-    // 48-hour private signed URL for convenience (still requires ownership to re-issue)
     playUrl = await createSignedRecordingUrl(input.storagePath, 60 * 60 * 48);
   }
 
-  // Prefer portal signed-URL API path as durable CTA if storage URL fails
   if (!playUrl && input.videoId) {
     playUrl = `${site}/api/videos/${input.videoId}/url`;
   }

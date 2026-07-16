@@ -67,7 +67,8 @@ Fill in real values in `.env.local` (never commit this file):
 | `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` / `NEXT_PUBLIC_LIVEKIT_URL` | [LiveKit Cloud](https://cloud.livekit.io) |
 | `SUPABASE_S3_ACCESS_KEY` / `SUPABASE_S3_SECRET_KEY` | Supabase → Storage → S3 Access Keys |
 | `RESEND_API_KEY` | [Resend](https://resend.com) → API Keys |
-| `RESEND_FROM_EMAIL` | e.g. `Sacred Reference <hello@oursacredreference.com>` (verified domain) |
+| `RESEND_FROM_EMAIL` | e.g. `Michele \| Sacred Reference <michele@oursacredreference.com>` |
+| `PRACTITIONER_NOTIFY_EMAIL` | `michele@oursacredreference.com` (booking/reminder CC recipients) |
 
 Full comments: [`.env.example`](./.env.example).
 
@@ -157,13 +158,15 @@ Detailed guide: [`docs/DOMAIN_AND_DNS.md`](./docs/DOMAIN_AND_DNS.md).
 
 ```env
 RESEND_API_KEY=re_xxxxxxxx
-RESEND_FROM_EMAIL=Sacred Reference <hello@oursacredreference.com>
+RESEND_FROM_EMAIL=Michele | Sacred Reference <michele@oursacredreference.com>
+PRACTITIONER_NOTIFY_EMAIL=michele@oursacredreference.com
 ```
 
 4. Restart / redeploy.
 5. Test:
-   - Book a discovery session → **booking confirmation** email
-   - Complete a recorded session → **recording ready** email (library + private link)
+   - Book a discovery session → **booking confirmation** to **customer + Michele**
+   - Session reminder cron → same dual recipients
+   - Recording ready → **customer only** (library + private link)
 6. Optional reminders: call `POST /api/cron/session-reminders` hourly with  
    `Authorization: Bearer <CRON_SECRET>` (set `CRON_SECRET` in env).
 
@@ -265,12 +268,13 @@ Optional: S3 endpoint overrides, `CRON_SECRET` for session reminders.
 
 ### Transactional emails (Resend)
 
-| Trigger | Email |
-|---------|--------|
-| Successful `/book-session` | Booking confirmation (time, portal + join link) |
-| Cron ` /api/cron/session-reminders` | Session reminder (~24h window) |
-| Recording ready (egress pipeline) | Library link + optional 48h signed playback URL |
+| Trigger | Recipients | Email |
+|---------|------------|--------|
+| Successful `/book-session` | Customer **+** Michele | Booking confirmation |
+| Cron `/api/cron/session-reminders` | Customer **+** Michele | Session reminder (~24h) |
+| Recording ready (egress pipeline) | Customer only | Library + optional 48h signed URL |
 
+**From:** `michele@oursacredreference.com` (override with `RESEND_FROM_EMAIL`).  
 Templates: forest/gold branded HTML in `src/lib/email/templates.ts`.
 
 ---

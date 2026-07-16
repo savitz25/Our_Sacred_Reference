@@ -9,14 +9,36 @@ export function getResendApiKey(): string | null {
 }
 
 /**
- * Verified sender. Prefer domain email after DNS verification in Resend.
- * Default: hello@oursacredreference.com
+ * Customer-facing sender for all transactional emails.
+ * Default: Michele via verified domain.
  */
 export function getFromAddress(): string {
   return (
     process.env.RESEND_FROM_EMAIL?.trim() ||
-    "Sacred Reference <hello@oursacredreference.com>"
+    "Michele | Sacred Reference <michele@oursacredreference.com>"
   );
+}
+
+/**
+ * Practitioner inbox for appointment notifications (new booking, reminders).
+ * Always included as a recipient on appointment-related emails.
+ */
+export function getPractitionerNotifyEmail(): string {
+  return (
+    process.env.PRACTITIONER_NOTIFY_EMAIL?.trim() ||
+    "michele@oursacredreference.com"
+  );
+}
+
+/** Unique list of recipients (customer + Michele for appointments) */
+export function appointmentRecipients(customerEmail: string): string[] {
+  const customer = customerEmail.trim().toLowerCase();
+  const practitioner = getPractitionerNotifyEmail().toLowerCase();
+  const list = [customer];
+  if (practitioner && practitioner !== customer) {
+    list.push(practitioner);
+  }
+  return list;
 }
 
 export function getSiteUrl(): string {
