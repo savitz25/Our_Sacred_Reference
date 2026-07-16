@@ -63,8 +63,12 @@ export function AdminDashboard({
 
   const categories = useMemo(() => {
     const set = new Set<string>();
-    videos.forEach((v) => v.category_tags.forEach((t) => set.add(t)));
-    sessions.forEach((s) => set.add(s.session_type));
+    videos.forEach((v) =>
+      (v.category_tags ?? []).forEach((t) => set.add(t))
+    );
+    sessions.forEach((s) => {
+      if (s.session_type) set.add(s.session_type);
+    });
     return ["all", ...Array.from(set).sort()];
   }, [videos, sessions]);
 

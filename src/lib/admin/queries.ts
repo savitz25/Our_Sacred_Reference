@@ -1,5 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
-import type { SessionStatus, SessionType, VideoStatus } from "@/lib/database.types";
+import type {
+  SessionStatus,
+  SessionType,
+  VideoStatus,
+} from "@/lib/database.types";
 
 export type AdminSessionRow = {
   id: string;
@@ -30,63 +34,46 @@ export type AdminVideoRow = {
   client_email: string | null;
 };
 
-type ProfileEmbed = {
-  full_name: string | null;
-  email: string;
-} | null;
-
 /**
- * All appointments for practitioners (RLS allows is_practitioner()).
+ * Reliable admin fetch: two queries + in-memory join.
+ * Avoids brittle FK-name embeds that fail across Supabase projects.
+ * RLS must allow practitioners to read all sessions/profiles/videos.
  */
 export async function fetchAdminSessions(): Promise<AdminSessionRow[]> {
-  const supabase = await createClient();
+  try {
+    const supabase = await createClient();
 
-  const { data, error } = await supabase
-    .from("sessions")
-    .select(
-      `
-      id,
-      user_id,
-      title,
-      session_type,
-      scheduled_at,
-      duration_minutes,
-      status,
-      meeting_url,
-      notes,
-      profiles!sessions_user_id_fkey (
-        full_name,
-        email
-      )
-    `
-    )
-    .order("scheduled_at", { ascending: false });
-
-  if (error) {
-    // Fallback without named FK if schema name differs
-    console.warn("[admin] sessions join fallback", error.message);
-    const { data: sessions } = await supabase
+    const { data: sessions, error: sErr } = await supabase
       .from("sessions")
-      .select("*")
+      .select(
+        "id, user_id, title, session_type, scheduled_at, duration_minutes, status, meeting_url, notes"
+      )
       .order("scheduled_at", { ascending: false });
 
-    const { data: profiles } = await supabase
+    if (sErr) {
+      console.error("[admin] sessions query error:", sErr.message, sErr.code);
+      return [];
+    }
+
+    const { data: profiles, error: pErr } = await supabase
       .from("profiles")
       .select("id, full_name, email");
 
-    const map = new Map(
-      (profiles ?? []).map((p) => [p.id, p] as const)
-    );
+    if (pErr) {
+      console.error("[admin] profiles query error:", pErr.message, pErr.code);
+    }
+
+    const map = new Map((profiles ?? []).map((p) => [p.id, p] as const));
 
     return (sessions ?? []).map((s) => {
       const p = map.get(s.user_id);
       return {
         id: s.id,
         user_id: s.user_id,
-        title: s.title,
+        title: s.title ?? "Session",
         session_type: s.session_type,
         scheduled_at: s.scheduled_at,
-        duration_minutes: s.duration_minutes,
+        duration_minutes: s.duration_minutes ?? 60,
         status: s.status,
         meeting_url: s.meeting_url,
         notes: s.notes,
@@ -94,73 +81,37 @@ export async function fetchAdminSessions(): Promise<AdminSessionRow[]> {
         client_email: p?.email ?? null,
       };
     });
+  } catch (e) {
+    console.error("[admin] fetchAdminSessions threw:", e);
+    return [];
   }
-
-  return (data ?? []).map((row) => {
-    const raw = row as typeof row & {
-      profiles?: ProfileEmbed | ProfileEmbed[];
-    };
-    const profile = Array.isArray(raw.profiles)
-      ? raw.profiles[0]
-      : raw.profiles;
-    return {
-      id: row.id,
-      user_id: row.user_id,
-      title: row.title,
-      session_type: row.session_type,
-      scheduled_at: row.scheduled_at,
-      duration_minutes: row.duration_minutes,
-      status: row.status,
-      meeting_url: row.meeting_url,
-      notes: row.notes,
-      client_name: profile?.full_name ?? null,
-      client_email: profile?.email ?? null,
-    };
-  });
 }
 
-/**
- * All video consults / recordings for practitioners.
- */
 export async function fetchAdminVideos(): Promise<AdminVideoRow[]> {
-  const supabase = await createClient();
+  try {
+    const supabase = await createClient();
 
-  const { data, error } = await supabase
-    .from("videos")
-    .select(
-      `
-      id,
-      session_id,
-      user_id,
-      title,
-      category_tags,
-      status,
-      storage_path,
-      duration_seconds,
-      created_at,
-      transcript_summary,
-      profiles!videos_user_id_fkey (
-        full_name,
-        email
-      )
-    `
-    )
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    console.warn("[admin] videos join fallback", error.message);
-    const { data: videos } = await supabase
+    const { data: videos, error: vErr } = await supabase
       .from("videos")
-      .select("*")
+      .select(
+        "id, session_id, user_id, title, category_tags, status, storage_path, duration_seconds, created_at, transcript_summary"
+      )
       .order("created_at", { ascending: false });
 
-    const { data: profiles } = await supabase
+    if (vErr) {
+      console.error("[admin] videos query error:", vErr.message, vErr.code);
+      return [];
+    }
+
+    const { data: profiles, error: pErr } = await supabase
       .from("profiles")
       .select("id, full_name, email");
 
-    const map = new Map(
-      (profiles ?? []).map((p) => [p.id, p] as const)
-    );
+    if (pErr) {
+      console.error("[admin] profiles query error:", pErr.message, pErr.code);
+    }
+
+    const map = new Map((profiles ?? []).map((p) => [p.id, p] as const));
 
     return (videos ?? []).map((v) => {
       const p = map.get(v.user_id);
@@ -168,8 +119,8 @@ export async function fetchAdminVideos(): Promise<AdminVideoRow[]> {
         id: v.id,
         session_id: v.session_id,
         user_id: v.user_id,
-        title: v.title,
-        category_tags: v.category_tags ?? [],
+        title: v.title ?? "Recording",
+        category_tags: Array.isArray(v.category_tags) ? v.category_tags : [],
         status: v.status,
         storage_path: v.storage_path,
         duration_seconds: v.duration_seconds,
@@ -179,28 +130,8 @@ export async function fetchAdminVideos(): Promise<AdminVideoRow[]> {
         client_email: p?.email ?? null,
       };
     });
+  } catch (e) {
+    console.error("[admin] fetchAdminVideos threw:", e);
+    return [];
   }
-
-  return (data ?? []).map((row) => {
-    const raw = row as typeof row & {
-      profiles?: ProfileEmbed | ProfileEmbed[];
-    };
-    const profile = Array.isArray(raw.profiles)
-      ? raw.profiles[0]
-      : raw.profiles;
-    return {
-      id: row.id,
-      session_id: row.session_id,
-      user_id: row.user_id,
-      title: row.title,
-      category_tags: row.category_tags ?? [],
-      status: row.status,
-      storage_path: row.storage_path,
-      duration_seconds: row.duration_seconds,
-      created_at: row.created_at,
-      transcript_summary: row.transcript_summary,
-      client_name: profile?.full_name ?? null,
-      client_email: profile?.email ?? null,
-    };
-  });
 }

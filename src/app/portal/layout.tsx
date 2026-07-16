@@ -1,6 +1,8 @@
 import { PortalNav } from "@/components/portal/PortalNav";
 import { requireProfile } from "@/lib/auth";
 
+export const dynamic = "force-dynamic";
+
 export default async function PortalLayout({
   children,
 }: {

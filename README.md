@@ -26,6 +26,7 @@ Supabase: `https://mbboakpdxgquntlohlix.supabase.co`
 | Resend “recording ready” email | ✅ optional |
 | Security headers, sitemap, robots, health check | ✅ |
 | Practitioner **Admin** (`/admin`) — appointments & recordings | ✅ |
+| Admin auth/role hardening for production | ✅ |
 | Stripe payments | ⏳ future |
 | Full HIPAA / BAAs | ⏳ legal + vendor BAAs |
 

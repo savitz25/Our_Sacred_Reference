@@ -25,9 +25,13 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(
-    authError ? "Authentication failed. Please try again." : null
-  );
+  const [error, setError] = useState<string | null>(() => {
+    if (authError === "config") {
+      return "Server configuration error: Supabase environment variables may be missing on Vercel.";
+    }
+    if (authError) return "Authentication failed. Please try again.";
+    return null;
+  });
   const [message, setMessage] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
