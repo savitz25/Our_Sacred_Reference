@@ -126,7 +126,7 @@ In Authentication → URL configuration:
 
 Disable or enable **Confirm email** as you prefer. Booking uses the service role and marks emails confirmed for a smooth discovery flow.
 
-### 5. Run
+### 6. Run
 
 ```bash
 npm run dev
