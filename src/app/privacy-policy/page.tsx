@@ -184,10 +184,10 @@ export default function PrivacyPolicyPage() {
         <p>
           Privacy questions or requests:{" "}
           <a
-            href="mailto:hello@sacredreference.com"
+            href="mailto:michele@oursacredreference.com"
             className="text-teal hover:underline"
           >
-            hello@sacredreference.com
+            michele@oursacredreference.com
           </a>
           .
         </p>

@@ -15,14 +15,15 @@ export default function BookSessionPage() {
       <section className="relative bg-sacred-gradient py-16 sm:py-20">
         <div className="mx-auto max-w-6xl px-5 sm:px-8">
           <p className="text-gold-soft text-sm font-medium tracking-[0.15em] uppercase mb-4">
-            Book free session
+            Work with me · Path of Remembering
           </p>
           <h1 className="font-serif text-4xl sm:text-5xl text-cream max-w-2xl leading-tight">
             Schedule your free discovery session
           </h1>
           <p className="mt-5 max-w-xl text-cream/80 leading-relaxed">
-            Choose a time that works for you, complete a brief intake, and
-            receive portal access with your session link.
+            A gentle first step into this mytho-shamanic return to the wisdom
+            of your soul. Choose a time, complete a brief intake, and receive
+            portal access with your secure session link.
           </p>
         </div>
       </section>

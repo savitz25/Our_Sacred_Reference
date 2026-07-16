@@ -26,8 +26,9 @@ export function Footer() {
               <span className="font-serif text-xl">{siteConfig.name}</span>
             </Link>
             <p className="mt-4 max-w-md text-sm leading-relaxed text-cream/70">
-              {siteConfig.tagline}. An embodied path of healing through
-              sensation, myth, and relationship with the Sacred.
+              {siteConfig.tagline} Beneath every wound there is Wholeness —
+              something sacred waiting to be remembered. This is a Path of
+              Remembering.
             </p>
           </div>
 

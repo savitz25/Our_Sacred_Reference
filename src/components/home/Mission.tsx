@@ -11,11 +11,23 @@ export function Mission() {
         <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl text-forest font-medium">
           {mission.title}
         </h2>
+        <p className="mt-5 font-serif text-xl sm:text-2xl text-ink-soft italic max-w-2xl mx-auto leading-snug">
+          {mission.coreMessage}
+        </p>
       </div>
 
-      <div className="mt-10 space-y-6 text-ink-soft text-lg leading-relaxed">
+      <div className="mt-12 space-y-6 text-ink-soft text-lg leading-relaxed">
         {mission.paragraphs.map((p, i) => (
-          <p key={i} className={i === 0 ? "text-xl text-ink" : undefined}>
+          <p
+            key={i}
+            className={
+              i === 0 || i === 1
+                ? "text-xl text-ink font-medium"
+                : i === 2
+                  ? "text-ink leading-relaxed"
+                  : undefined
+            }
+          >
             {p}
           </p>
         ))}

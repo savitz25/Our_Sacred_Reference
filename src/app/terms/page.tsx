@@ -181,10 +181,10 @@ export default function TermsPage() {
         <p>
           Questions about these Terms:{" "}
           <a
-            href="mailto:hello@sacredreference.com"
+            href="mailto:michele@oursacredreference.com"
             className="text-teal hover:underline"
           >
-            hello@sacredreference.com
+            michele@oursacredreference.com
           </a>
           .
         </p>

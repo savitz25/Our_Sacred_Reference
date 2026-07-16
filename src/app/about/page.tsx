@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { Section, SectionHeader } from "@/components/ui/Section";
 import { Button } from "@/components/ui/Button";
-import { mission, siteConfig } from "@/lib/content";
+import { micheleBio, mission, siteConfig } from "@/lib/content";
 import { CTABanner } from "@/components/home/CTABanner";
 
 export const metadata: Metadata = {
-  title: "About Michele & Sacred Reference",
+  title: "About Michele Castro",
   description:
-    "Learn about Michele and Sacred Reference — mytho-shamanic somatic healing integrating felt sense, Jungian depth psychology, and embodied spirituality.",
+    "Michele Castro — mother, mytho-shamanic somatic practitioner, and guide on a Path of Remembering. Full biography from Sacred Reference.",
 };
 
 export default function AboutPage() {
@@ -20,18 +20,22 @@ export default function AboutPage() {
             About
           </p>
           <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl text-cream max-w-3xl leading-tight">
-            Michele & Sacred Reference
+            {micheleBio.name}
           </h1>
-          <p className="mt-6 max-w-2xl text-lg text-cream/80 leading-relaxed">
+          <p className="mt-6 max-w-2xl text-lg text-cream/80 leading-relaxed italic">
+            {siteConfig.tagline}
+          </p>
+          <p className="mt-4 max-w-2xl text-base text-cream/70 leading-relaxed">
             A practice rooted in relationship — with the body, the unconscious,
-            myth, Nature, and the Sacred.
+            myth, Nature, and the Sacred. Devoted to Serve and Embody the
+            Divine Mother.
           </p>
         </div>
       </section>
 
       <Section className="bg-cream">
-        <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
-          <div className="relative aspect-[4/5] rounded-2xl overflow-hidden shadow-elevated">
+        <div className="grid gap-12 lg:grid-cols-2 lg:items-start">
+          <div className="relative aspect-[4/5] rounded-2xl overflow-hidden shadow-elevated lg:sticky lg:top-28">
             <Image
               src="https://images.unsplash.com/photo-1502082553048-f009c37129b9?w=900&q=80"
               alt="Soft light through forest trees — symbolic portrait space"
@@ -44,38 +48,22 @@ export default function AboutPage() {
           <div>
             <SectionHeader
               eyebrow="Biography"
-              title="An integrative path few walk"
+              title="First and foremost, a mother"
               align="left"
               className="mb-6"
             />
-            <div className="space-y-4 text-ink-soft leading-relaxed">
-              <p>
-                Michele offers online video sessions that integrate somatic
-                practice, the felt sense, attachment science, Jungian depth
-                psychology, mythology, and{" "}
-                <strong className="text-forest">mytho-shamanic wisdom</strong>.
-              </p>
-              <p>
-                Very few practitioners bring the felt sense together with
-                mytho-shamanic consciousness in a way that makes myth a lived,
-                embodied experience rather than an intellectual framework. This
-                integration is the heart of Sacred Reference.
-              </p>
-              <p>
-                The work teaches{" "}
-                <em className="text-forest not-italic font-medium">
-                  relationship
-                </em>{" "}
-                — with sensation, dreams, myth, the unconscious, the body,
-                Nature, and the Sacred — rather than a set of techniques alone.
-                The felt sense is the doorway; mythology gives language; a
-                mytho-shamanic perspective turns the psyche into a living
-                landscape.
-              </p>
+            <div className="space-y-5 text-ink-soft leading-relaxed">
+              <p className="text-lg text-ink">{micheleBio.intro}</p>
+              {micheleBio.paragraphs.map((p, i) => (
+                <p key={i}>{p}</p>
+              ))}
             </div>
-            <div className="mt-8">
+            <div className="mt-10 flex flex-col sm:flex-row gap-3">
               <Button href="/book-session" variant="gold">
                 Book a Free Discovery Session
+              </Button>
+              <Button href="/approach" variant="outline">
+                The Approach
               </Button>
             </div>
           </div>
@@ -85,11 +73,11 @@ export default function AboutPage() {
       <Section className="bg-cream-dark/40" narrow>
         <SectionHeader
           eyebrow={siteConfig.name}
-          title={mission.title}
-          description="Our mission is the anchor of everything we offer."
+          title={mission.pathTitle}
+          description={mission.coreMessage}
         />
         <div className="space-y-5 text-ink-soft text-lg leading-relaxed">
-          {mission.paragraphs.map((p, i) => (
+          {mission.practiceParagraphs.map((p, i) => (
             <p key={i}>{p}</p>
           ))}
         </div>
@@ -109,9 +97,9 @@ export default function AboutPage() {
             Online, secure, and embodied
           </h2>
           <p className="text-ink-soft leading-relaxed mb-6">
-            Sessions are held via secure in-browser video. After each meeting,
-            recordings can appear in your private portal library — an evolving
-            embodied archive of your work together.
+            Sessions are held via secure in-browser video on Sacred Reference.
+            After each meeting, recordings can appear in your private portal
+            library — an evolving embodied archive of your Path of Remembering.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button href="/approach" variant="primary">

@@ -19,27 +19,31 @@ const inter = Inter({
 
 const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
-  "https://www.sacredreference.com";
+  "https://www.oursacredreference.com";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: `${siteConfig.name} | ${siteConfig.tagline}`,
+    default: `${siteConfig.name} | ${siteConfig.shortTagline}`,
     template: `%s | ${siteConfig.name}`,
   },
   description: siteConfig.description,
   keywords: [
     "mytho-shamanic",
     "somatic healing",
+    "Path of Remembering",
     "felt sense",
+    "Divine Mother",
     "Jungian depth psychology",
     "embodied spirituality",
+    "feminine wisdom",
     "online coaching sessions",
     "Sacred Reference",
+    "Michele Castro",
   ],
-  authors: [{ name: "Sacred Reference" }],
+  authors: [{ name: "Michele Castro" }, { name: "Sacred Reference" }],
   openGraph: {
-    title: `${siteConfig.name} | ${siteConfig.tagline}`,
+    title: `${siteConfig.name} | ${siteConfig.shortTagline}`,
     description: siteConfig.description,
     type: "website",
     locale: "en_US",
@@ -48,7 +52,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: `${siteConfig.name} | ${siteConfig.tagline}`,
+    title: `${siteConfig.name} | ${siteConfig.shortTagline}`,
     description: siteConfig.description,
   },
   robots: {

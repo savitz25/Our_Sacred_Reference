@@ -28,7 +28,7 @@ export default function HomePage() {
         <SectionHeader
           eyebrow="Offerings & Sessions"
           title="Ways to enter the work"
-          description="Begin with a complimentary discovery session, then continue in a rhythm that honors your nervous system."
+          description="Begin with a complimentary discovery session. Then continue in a rhythm that honors your nervous system — as symptoms become soul-language on a Path of Remembering."
         />
         <div className="grid gap-6 md:grid-cols-3">
           {offerings.map((o) => (
@@ -71,8 +71,8 @@ export default function HomePage() {
       <Section className="bg-cream-dark/40">
         <SectionHeader
           eyebrow="Blog & Resources"
-          title="Reflections for the path"
-          description="Articles on felt sense, myth as lived experience, and embodied spirituality."
+          title="Reflections for the Path of Remembering"
+          description="Articles on felt sense, myth as lived experience, feminine wisdom, and embodied spirituality."
         />
         <div className="grid gap-6 md:grid-cols-3">
           {blogPosts.map((post) => (

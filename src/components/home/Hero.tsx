@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { Button } from "@/components/ui/Button";
-import { siteConfig } from "@/lib/content";
+import { heroContent, siteConfig } from "@/lib/content";
 import { ArrowRight } from "lucide-react";
 
 export function Hero() {
@@ -15,27 +15,30 @@ export function Hero() {
           className="object-cover"
           sizes="100vw"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-forest-deep/90 via-forest/75 to-forest/40" />
-        <div className="absolute inset-0 bg-gradient-to-t from-forest-deep/60 via-transparent to-forest-deep/20" />
+        <div className="absolute inset-0 bg-gradient-to-r from-forest-deep/92 via-forest/78 to-forest/45" />
+        <div className="absolute inset-0 bg-gradient-to-t from-forest-deep/65 via-transparent to-forest-deep/25" />
       </div>
 
       <div className="relative mx-auto max-w-6xl px-5 sm:px-8 py-24 sm:py-32 w-full">
-        <div className="max-w-2xl animate-fade-up">
-          <p className="text-gold-soft text-sm sm:text-base font-medium tracking-[0.2em] uppercase mb-5">
-            {siteConfig.tagline}
+        <div className="max-w-3xl animate-fade-up">
+          <p className="text-gold-soft text-sm sm:text-base font-medium tracking-[0.18em] uppercase mb-4">
+            {siteConfig.shortTagline}
           </p>
-          <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl xl:text-7xl text-cream font-medium leading-[1.1] tracking-tight">
-            Remember the sacred intelligence within you
+          <p className="font-serif text-xl sm:text-2xl text-cream/90 italic leading-snug mb-6 max-w-2xl">
+            {heroContent.eyebrow}
+          </p>
+          <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl xl:text-[3.25rem] text-cream font-medium leading-[1.15] tracking-tight">
+            {heroContent.headline}
           </h1>
-          <p className="mt-6 text-lg sm:text-xl text-cream/85 leading-relaxed max-w-xl">
-            Online sessions integrating somatic practice, the felt sense,
-            attachment science, Jungian depth psychology, mythology, and{" "}
-            <span className="text-gold-soft font-medium">mytho-shamanic</span>{" "}
-            wisdom — where myth becomes a lived, embodied experience.
+          <p className="mt-6 font-serif text-2xl sm:text-3xl text-gold-soft leading-snug">
+            {heroContent.pathTitle}
+          </p>
+          <p className="mt-5 text-base sm:text-lg text-cream/80 leading-relaxed max-w-2xl">
+            {heroContent.reclaimLead}
           </p>
           <div className="mt-10 flex flex-col sm:flex-row gap-4">
             <Button href="/book-session" variant="gold" size="lg">
-              Schedule Your Free Discovery Session
+              {heroContent.ctaPrimary}
               <ArrowRight className="h-5 w-5" aria-hidden />
             </Button>
             <Button
@@ -44,7 +47,7 @@ export function Hero() {
               size="lg"
               className="border-cream/30 text-cream hover:bg-cream/10 hover:border-cream/50"
             >
-              Explore the Approach
+              {heroContent.ctaSecondary}
             </Button>
           </div>
         </div>

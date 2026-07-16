@@ -22,11 +22,12 @@ export default function OfferingsPage() {
             Offerings
           </p>
           <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl text-cream max-w-3xl leading-tight">
-            Sessions designed for presence
+            Ways to walk the Path of Remembering
           </h1>
           <p className="mt-6 max-w-2xl text-lg text-cream/80 leading-relaxed">
-            Online video sessions with secure rooms, optional private
-            recordings, and a client portal that holds your embodied archive.
+            Online video sessions where symptoms become soul-language —
+            secure rooms, optional private recordings, and a portal that holds
+            your embodied archive.
           </p>
         </div>
       </section>
@@ -35,7 +36,7 @@ export default function OfferingsPage() {
         <SectionHeader
           eyebrow="How we work together"
           title="Choose your entry point"
-          description="Most clients begin with a free discovery session. From there, we shape a rhythm that supports your nervous system and depth of inquiry."
+          description="Most people begin with a free discovery session. From there, we shape a rhythm that honors your nervous system — weekly, bi-weekly, or monthly — as we learn to turn toward what is ready to be heard."
         />
 
         <div className="grid gap-8 lg:grid-cols-3">
@@ -95,19 +96,19 @@ export default function OfferingsPage() {
           {[
             {
               t: "Arrive & orient",
-              d: "We begin by settling into the body and the relational field of the session.",
+              d: "We settle into the body and the relational field — without rush, without force.",
             },
             {
-              t: "Follow the felt sense",
-              d: "Sensation, emotion, image, and story become the language of inquiry.",
+              t: "Listen to soul-language",
+              d: "Sensation, emotion, image, and story become the language of inquiry. Symptoms are sacred messages we learn to decipher.",
             },
             {
-              t: "Meet myth & depth",
-              d: "When ready, mythic, dream, and archetypal material may enter as living guides.",
+              t: "Turn toward with reverence",
+              d: "We strengthen capacity for unconditional love and curiosity toward parts in suffering, pain, or exile — Gently, Curiously, Reverently.",
             },
             {
-              t: "Integrate & archive",
-              d: "Sessions may be recorded for your private library, categorized for later reflection.",
+              t: "Integrate & remember",
+              d: "What was fragmented reorganizes toward wholeness. Sessions may be recorded for your private library — an embodied archive of your Path of Remembering.",
             },
           ].map((step, i) => (
             <li key={step.t} className="flex gap-4">

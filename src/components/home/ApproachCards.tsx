@@ -35,7 +35,7 @@ export function ApproachCards() {
       <SectionHeader
         eyebrow="Sacred Reference Approach"
         title="Seven pillars of embodied healing"
-        description="Interactive overview of the methodology. The felt sense is the doorway; mythology gives language; mytho-shamanic perspective turns the psyche into a living landscape."
+        description="A Path of Remembering. The felt sense is the doorway; mythology gives language; a mytho-shamanic perspective turns the psyche into a living landscape."
       />
 
       <div className="mb-8 flex justify-center gap-2" role="tablist" aria-label="View mode">

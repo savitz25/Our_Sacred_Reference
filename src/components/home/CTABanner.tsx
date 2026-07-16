@@ -14,19 +14,19 @@ export function CTABanner() {
       />
       <div className="relative mx-auto max-w-3xl px-5 sm:px-8 text-center">
         <p className="text-gold-soft text-sm font-medium tracking-[0.15em] uppercase mb-4">
-          Begin the relationship
+          A Path of Remembering
         </p>
         <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl text-cream font-medium leading-tight">
           Schedule your free discovery session
         </h2>
         <p className="mt-5 text-cream/80 text-lg leading-relaxed">
-          A gentle introduction to mytho-shamanic somatic healing — no
-          commitment, just presence, curiosity, and a conversation with your
-          body&apos;s wisdom.
+          A gentle introduction to this mytho-shamanic return to the wisdom of
+          your soul — no commitment, just presence, curiosity, and a
+          conversation with your body&apos;s sacred messages.
         </p>
         <div className="mt-10">
           <Button href="/book-session" variant="gold" size="lg">
-            Book Free Session
+            Work With Me
             <ArrowRight className="h-5 w-5" aria-hidden />
           </Button>
         </div>
