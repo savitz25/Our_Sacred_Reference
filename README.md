@@ -1,127 +1,198 @@
 # Sacred Reference Website
 
-**Mytho-Shamanic Somatic Healing** — Phase 1 design deliverable for Michele’s Sacred Reference practice.
+**Mytho-Shamanic Somatic Healing** — Next.js 15 + Supabase MVP.
 
-A production-ready **Next.js 15 (App Router)** marketing site and client portal UI mock, with Tailwind CSS v4, TypeScript, and a serene forest-green / gold / cream design system.
+Repository: [github.com/savitz25/Our_Sacred_Reference](https://github.com/savitz25/Our_Sacred_Reference)
 
-**Repository:** [github.com/savitz25/Our_Sacred_Reference](https://github.com/savitz25/Our_Sacred_Reference)
+Supabase project: `https://mbboakpdxgquntlohlix.supabase.co`
 
 ---
 
-## Quick start
+## Features (MVP)
+
+| Area | Status |
+|------|--------|
+| Public marketing site (design) | ✅ |
+| Supabase Auth (email/password, magic link, sign-up) | ✅ |
+| Protected `/portal/*` routes (middleware) | ✅ |
+| Auto account creation on discovery booking | ✅ |
+| Profiles / sessions / videos schema + RLS | ✅ SQL migration |
+| Booking calendar → `sessions` table | ✅ |
+| Portal dashboard & library (real data) | ✅ |
+| LiveKit video rooms | ✅ when env set; demo mode otherwise |
+| Post-session pipeline webhook | ✅ metadata + optional Resend |
+| Stripe payments | ⏳ TODO |
+| Full HIPAA/BAA production hardening | ⏳ TODO |
+
+---
+
+## Local setup
+
+### 1. Clone & install
 
 ```bash
 git clone https://github.com/savitz25/Our_Sacred_Reference.git
 cd Our_Sacred_Reference
 npm install
+```
+
+### 2. Environment variables
+
+Copy `.env.example` → `.env.local` and fill values:
+
+```bash
+cp .env.example .env.local
+```
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://mbboakpdxgquntlohlix.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+SUPABASE_SERVICE_ROLE_KEY=...
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+
+# Optional — real WebRTC
+LIVEKIT_API_KEY=
+LIVEKIT_API_SECRET=
+NEXT_PUBLIC_LIVEKIT_URL=
+
+# Optional — post-session email
+RESEND_API_KEY=
+RESEND_FROM_EMAIL=Sacred Reference <hello@yourdomain.com>
+
+# Optional — first login with this email can be promoted to practitioner in SQL
+PRACTITIONER_EMAIL=michele@sacredreference.com
+```
+
+> Vercel: set the same variables in Project → Settings → Environment Variables.
+
+### 3. Apply database schema (required once)
+
+1. Open [Supabase SQL Editor](https://supabase.com/dashboard/project/mbboakpdxgquntlohlix/sql)
+2. Paste and run: `supabase/migrations/001_initial_schema.sql`
+3. Confirm tables: `profiles`, `sessions`, `videos`, `availability_slots`
+4. Confirm storage bucket: `session-recordings` (private)
+
+Optional — set Michele as practitioner after she signs up:
+
+```sql
+update public.profiles
+set role = 'practitioner'
+where email = 'her-email@example.com';
+```
+
+### 4. Supabase Auth settings
+
+In Authentication → URL configuration:
+
+- **Site URL:** `http://localhost:3000` (and production domain)
+- **Redirect URLs:**  
+  - `http://localhost:3000/auth/callback`  
+  - `https://your-domain.vercel.app/auth/callback`
+
+Disable or enable **Confirm email** as you prefer. Booking uses the service role and marks emails confirmed for a smooth discovery flow.
+
+### 5. Run
+
+```bash
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
 
-| Script        | Description                |
-| ------------- | -------------------------- |
-| `npm run dev` | Dev server (Turbopack)     |
-| `npm run build` | Production build         |
-| `npm run start` | Start production server  |
-| `npm run lint`  | ESLint                   |
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Dev server (Turbopack) |
+| `npm run build` | Production build |
+| `npm run start` | Start production server |
+| `npm run lint` | ESLint |
 
 ---
 
-## Deploy on Vercel (preferred)
+## Deploy (Vercel)
 
-1. Import the GitHub repo at [vercel.com/new](https://vercel.com/new).
-2. Framework preset: **Next.js** (auto-detected).
-3. Root directory: repository root.
-4. Deploy — no env vars required for Phase 1 (UI only).
-
-CLI alternative:
-
-```bash
-npm i -g vercel
-vercel
-```
+1. Import the GitHub repo at [vercel.com/new](https://vercel.com/new)
+2. Add environment variables (same as `.env.local`)
+3. Deploy
+4. Add the production URL to Supabase Auth redirect allow-list
+5. Set `NEXT_PUBLIC_SITE_URL` to the production URL
 
 ---
 
-## What’s included (Phase 1)
-
-### Public marketing site
-
-| Route            | Description                                      |
-| ---------------- | ------------------------------------------------ |
-| `/`              | Hero, mission (verbatim), approach cards, CTAs   |
-| `/about`         | Michele & Sacred Reference                       |
-| `/approach`      | Seven pillars + methodology narrative            |
-| `/offerings`     | Session types & pricing placeholders             |
-| `/blog`          | Resources hub teaser                             |
-| `/book-session`  | Calendar UI + intake form mock                   |
-| `/login`         | Portal login mock (any credentials → portal)     |
-| `/privacy`, `/terms` | Legal placeholders                          |
-
-### Client portal (UI mock)
-
-| Route                        | Description                                      |
-| ---------------------------- | ------------------------------------------------ |
-| `/portal`                    | Dashboard, upcoming sessions, quick-join         |
-| `/portal/library`            | Filterable/searchable session video grid         |
-| `/portal/profile`            | Account & preferences mock                       |
-| `/portal/session/[id]`       | Full-screen WebRTC-style video room mock         |
-| `/portal/session-complete`   | Post-session automation success UI               |
-
-### Design system
-
-- **Palette:** Forest `#0A3D33`, Gold `#D4A017`, Cream `#F5F0E8`, Teal `#2A8C7E`
-- **Typography:** Playfair Display (headings) + Inter (body)
-- **Aesthetic:** Spacious, feminine, mystical, professional — mytho-shamanic foregrounded
-
-### Tech stack
-
-- Next.js 15 App Router + React 19
-- Tailwind CSS v4 (`@theme` tokens in `globals.css`)
-- TypeScript
-- `lucide-react` icons
-- Unsplash nature imagery (remote patterns configured)
-
----
-
-## Project structure
+## Architecture
 
 ```
 src/
-  app/                 # Routes (public + portal)
-  components/
-    layout/            # Header, Footer
-    home/              # Hero, Mission, ApproachCards, …
-    booking/           # Calendar + intake
-    portal/            # Library, video room, nav
-    ui/                # Button, Card, Section, Badge
+  app/
+    actions/          # Server Actions: auth, booking, profile, sessions
+    api/
+      livekit/token/  # LiveKit JWT minting
+      webhooks/       # session-ended pipeline
+    auth/callback/    # OAuth / magic-link exchange
+    login/            # Real Supabase auth UI
+    book-session/     # Calendar + intake → account + session
+    portal/           # Protected client area
   lib/
-    content.ts         # Mission, pillars, nav (verbatim copy)
-    mock-data.ts       # Portal sessions & videos
-    utils.ts           # cn() helper
+    supabase/         # browser, server, admin, middleware clients
+    auth.ts           # requireUser / requireProfile
+    database.types.ts # Typed schema
+  middleware.ts       # Session refresh + /portal protection
+supabase/migrations/  # SQL schema + RLS
 ```
 
+### Auth flow
+
+1. **Login / sign-up** → Supabase Auth → cookies via `@supabase/ssr`
+2. **Book discovery** → service role creates user (or updates existing) → signs in → inserts `sessions` row
+3. **Portal** → middleware requires session → pages load profile + RLS-scoped data
+
+### Video flow
+
+1. Client opens `/portal/session/[id]`
+2. `POST /api/livekit/token` issues room token (if LiveKit configured)
+3. Leave → `endSessionAndQueueProcessing` → webhook marks video + categories
+4. Library lists `videos` for the user
+
 ---
 
-## Next phases (full-stack)
+## LiveKit setup (optional)
 
-1. **Auth & DB** — Supabase (JWT, roles: client / practitioner), profiles, sessions schema  
-2. **Scheduling** — Cal.com white-label or custom FullCalendar + webhooks for account creation  
-3. **Video** — LiveKit or Daily.co embedded rooms, practitioner-only recording, S3/Supabase Storage  
-4. **Post-session pipeline** — Webhook → FFmpeg trim → private storage → optional self-hosted Whisper tagging → portal library + email (Resend)  
-5. **Payments** — Stripe (packages, discovery free)  
-6. **Compliance** — BAAs (Supabase / LiveKit / Daily), encryption, audit logs, legal review  
+1. Create a project at [livekit.io](https://livekit.io) or self-host
+2. Set `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `NEXT_PUBLIC_LIVEKIT_URL` (wss://…)
+3. Without these, the session room runs in **demo mode** (UI + pipeline still work)
 
-> Phase 1 is **design-only**: no real auth, video, or PHI storage. Do not collect real client data on this mock.
+Recording: practitioner toggle is UI-ready; wire **LiveKit Egress** to Supabase Storage in a worker for production.
 
 ---
 
-## Notes
+## Remaining TODOs
 
-- Login and booking flows are interactive UI mocks for stakeholder review.
-- Session library uses static mock data (`src/lib/mock-data.ts`).
-- Mission statement and seven approach pillars are used **verbatim** as specified.
+### HIPAA / compliance
+
+- [ ] Execute BAAs with Supabase, LiveKit (or Daily), hosting, email
+- [ ] Audit logging for access to recordings
+- [ ] Encryption review, least-privilege service keys
+- [ ] Legal privacy policy / terms finalization
+- [ ] No third-party AI on session content without BAA
+
+### Product
+
+- [ ] Stripe for paid sessions
+- [ ] Cal.com white-label embed (optional; Supabase calendar works now)
+- [ ] LiveKit Egress → private Storage + FFmpeg worker
+- [ ] Self-hosted Whisper tagging (optional)
+- [ ] Resend email templates (welcome, reminders, recording ready)
+- [ ] Practitioner admin UI (all clients, availability editor)
+
+---
+
+## Phase history
+
+1. **Phase 1** — Design system, public pages, portal UI mocks  
+2. **Phase 2.1** — Supabase Auth, middleware, booking auto-user  
+3. **Phase 2.2** — Schema + RLS + real portal data  
+4. **Phase 2.3** — Scheduling → Supabase sessions  
+5. **Phase 2.4** — LiveKit token + room (demo fallback)  
+6. **Phase 2.5** — Post-session webhook pipeline  
 
 ---
 
