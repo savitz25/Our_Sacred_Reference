@@ -3,7 +3,9 @@ export const siteConfig = {
   tagline: "Mytho-Shamanic Somatic Healing",
   description:
     "An embodied path of healing weaving somatic practice, the felt sense, attachment science, Jungian depth psychology, mythology, and mytho-shamanic wisdom.",
-  url: "https://sacredreference.com",
+  url:
+    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
+    "https://www.sacredreference.com",
   practitioner: "Michele",
   email: "hello@sacredreference.com",
 };

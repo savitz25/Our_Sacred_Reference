@@ -154,6 +154,30 @@ body {
   aspect-ratio: 16 / 10;
 }
 
+/* Screen-reader only (skip link) */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.focus\:not-sr-only:focus {
+  position: absolute;
+  width: auto;
+  height: auto;
+  padding: inherit;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
 /* Reduce motion preference */
 @media (prefers-reduced-motion: reduce) {
   html {
@@ -162,7 +186,9 @@ body {
   .animate-fade-up,
   .animate-fade-up-delay-1,
   .animate-fade-up-delay-2,
-  .animate-fade-up-delay-3 {
-    animation: none;
+  .animate-fade-up-delay-3,
+  .animate-spin {
+    animation: none !important;
   }
 }
+
