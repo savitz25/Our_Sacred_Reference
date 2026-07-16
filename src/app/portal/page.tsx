@@ -3,11 +3,55 @@ import { Video, Calendar, Film, ArrowRight, Clock } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { mockClient, mockUpcomingSessions, mockVideos } from "@/lib/mock-data";
+import { requireProfile } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
 
-export default function PortalDashboardPage() {
-  const nextSession = mockUpcomingSessions[0];
-  const recentVideos = mockVideos.slice(0, 3);
+export default async function PortalDashboardPage() {
+  const { profile, user } = await requireProfile();
+  const supabase = await createClient();
+  const now = new Date().toISOString();
+
+  const { data: upcoming } = await supabase
+    .from("sessions")
+    .select("*")
+    .eq("user_id", user.id)
+    .gte("scheduled_at", now)
+    .neq("status", "cancelled")
+    .order("scheduled_at", { ascending: true })
+    .limit(5);
+
+  // Practitioners see all upcoming
+  let practitionerUpcoming = upcoming;
+  if (profile.role === "practitioner" || profile.role === "admin") {
+    const { data } = await supabase
+      .from("sessions")
+      .select("*")
+      .gte("scheduled_at", now)
+      .neq("status", "cancelled")
+      .order("scheduled_at", { ascending: true })
+      .limit(10);
+    practitionerUpcoming = data;
+  }
+
+  const sessions = practitionerUpcoming ?? [];
+
+  const { data: recentVideos } = await supabase
+    .from("videos")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(3);
+
+  const nextSession = sessions[0];
+  const joinable =
+    nextSession &&
+    new Date(nextSession.scheduled_at).getTime() - Date.now() <
+      24 * 60 * 60 * 1000;
+
+  const firstName =
+    profile.full_name?.split(" ")[0] ||
+    profile.email.split("@")[0] ||
+    "there";
 
   return (
     <div>
@@ -16,32 +60,31 @@ export default function PortalDashboardPage() {
           Welcome back
         </p>
         <h1 className="font-serif text-3xl sm:text-4xl text-forest">
-          Hello, {mockClient.name.split(" ")[0]}
+          Hello, {firstName}
         </h1>
         <p className="mt-2 text-ink-soft">
           Your sacred space for sessions, recordings, and the path ahead.
         </p>
       </div>
 
-      {/* Quick join */}
-      {nextSession?.joinable && (
+      {nextSession && joinable && (
         <Card className="mb-8 bg-sacred-gradient border-0 text-cream !shadow-elevated">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
             <div>
               <Badge className="mb-3 !bg-gold/20 !text-gold-soft">
-                Starting soon
+                Upcoming
               </Badge>
               <h2 className="font-serif text-2xl mb-1">{nextSession.title}</h2>
               <p className="text-cream/75 text-sm flex items-center gap-2">
                 <Clock className="h-4 w-4" aria-hidden />
-                {new Date(nextSession.datetime).toLocaleString("en-US", {
+                {new Date(nextSession.scheduled_at).toLocaleString("en-US", {
                   weekday: "long",
                   month: "long",
                   day: "numeric",
                   hour: "numeric",
                   minute: "2-digit",
                 })}{" "}
-                · {nextSession.duration}
+                · {nextSession.duration_minutes} min
               </p>
             </div>
             <Button
@@ -64,39 +107,53 @@ export default function PortalDashboardPage() {
               Upcoming sessions
             </h2>
           </div>
-          <ul className="space-y-3">
-            {mockUpcomingSessions.map((s) => (
-              <li
-                key={s.id}
-                className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-border bg-cream/50 px-4 py-3"
-              >
-                <div>
-                  <p className="font-medium text-ink">{s.title}</p>
-                  <p className="text-sm text-muted">
-                    {new Date(s.datetime).toLocaleString("en-US", {
-                      weekday: "short",
-                      month: "short",
-                      day: "numeric",
-                      hour: "numeric",
-                      minute: "2-digit",
-                    })}{" "}
-                    · {s.duration}
-                  </p>
-                </div>
-                {s.joinable ? (
-                  <Button href={`/portal/session/${s.id}`} size="sm" variant="secondary">
-                    Join
-                  </Button>
-                ) : (
-                  <Badge variant="outline">Scheduled</Badge>
-                )}
-              </li>
-            ))}
-          </ul>
-          <p className="mt-4 text-xs text-muted">
-            Rescheduling will connect to Cal.com / custom calendar in Phase 2.
-            Past sessions are read-only.
-          </p>
+          {!sessions.length ? (
+            <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center">
+              <p className="text-ink-soft mb-4">No upcoming sessions yet.</p>
+              <Button href="/book-session" variant="gold" size="sm">
+                Book free discovery session
+              </Button>
+            </div>
+          ) : (
+            <ul className="space-y-3">
+              {sessions.map((s) => {
+                const canJoin =
+                  new Date(s.scheduled_at).getTime() - Date.now() <
+                  24 * 60 * 60 * 1000;
+                return (
+                  <li
+                    key={s.id}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-border bg-cream/50 px-4 py-3"
+                  >
+                    <div>
+                      <p className="font-medium text-ink">{s.title}</p>
+                      <p className="text-sm text-muted">
+                        {new Date(s.scheduled_at).toLocaleString("en-US", {
+                          weekday: "short",
+                          month: "short",
+                          day: "numeric",
+                          hour: "numeric",
+                          minute: "2-digit",
+                        })}{" "}
+                        · {s.duration_minutes} min · {s.status}
+                      </p>
+                    </div>
+                    {canJoin ? (
+                      <Button
+                        href={`/portal/session/${s.id}`}
+                        size="sm"
+                        variant="secondary"
+                      >
+                        Join
+                      </Button>
+                    ) : (
+                      <Badge variant="outline">Scheduled</Badge>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </Card>
 
         <Card>
@@ -147,27 +204,34 @@ export default function PortalDashboardPage() {
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
-        <div className="grid gap-4 sm:grid-cols-3">
-          {recentVideos.map((v) => (
-            <Link
-              key={v.id}
-              href={`/portal/session/${v.sessionId}`}
-              className="rounded-xl border border-border bg-white p-4 shadow-soft hover:shadow-elevated transition-shadow"
-            >
-              <p className="font-serif text-forest leading-snug">{v.title}</p>
-              <p className="mt-1 text-xs text-muted">
-                {new Date(v.date).toLocaleDateString()} · {v.duration}
-              </p>
-              <div className="mt-2 flex flex-wrap gap-1">
-                {v.categories.slice(0, 2).map((c) => (
-                  <Badge key={c} variant="teal">
-                    {c}
-                  </Badge>
-                ))}
-              </div>
-            </Link>
-          ))}
-        </div>
+        {!recentVideos?.length ? (
+          <p className="text-muted text-sm">
+            Session recordings will appear here after your meetings are
+            processed.
+          </p>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-3">
+            {recentVideos.map((v) => (
+              <Link
+                key={v.id}
+                href={`/portal/library?video=${v.id}`}
+                className="rounded-xl border border-border bg-white p-4 shadow-soft hover:shadow-elevated transition-shadow"
+              >
+                <p className="font-serif text-forest leading-snug">{v.title}</p>
+                <p className="mt-1 text-xs text-muted">
+                  {new Date(v.created_at).toLocaleDateString()} · {v.status}
+                </p>
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {(v.category_tags ?? []).slice(0, 2).map((c) => (
+                    <Badge key={c} variant="teal">
+                      {c}
+                    </Badge>
+                  ))}
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

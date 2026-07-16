@@ -3,18 +3,34 @@
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Play, Search, Calendar } from "lucide-react";
-import { mockVideos, type MockVideo } from "@/lib/mock-data";
+import { Play, Search, Calendar, Loader2 } from "lucide-react";
 import { videoCategories } from "@/lib/content";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
 
-export function VideoLibraryGrid() {
+export type LibraryVideo = {
+  id: string;
+  sessionId: string;
+  title: string;
+  date: string;
+  duration: string;
+  categories: string[];
+  thumbnail: string;
+  notes?: string;
+  status?: string;
+  publicUrl?: string | null;
+};
+
+interface VideoLibraryGridProps {
+  videos: LibraryVideo[];
+}
+
+export function VideoLibraryGrid({ videos }: VideoLibraryGridProps) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string>("All");
 
   const filtered = useMemo(() => {
-    return mockVideos.filter((v) => {
+    return videos.filter((v) => {
       const matchesCategory =
         category === "All" || v.categories.includes(category);
       const q = query.trim().toLowerCase();
@@ -25,7 +41,7 @@ export function VideoLibraryGrid() {
         (v.notes?.toLowerCase().includes(q) ?? false);
       return matchesCategory && matchesQuery;
     });
-  }, [query, category]);
+  }, [videos, query, category]);
 
   return (
     <div>
@@ -71,7 +87,9 @@ export function VideoLibraryGrid() {
 
       {filtered.length === 0 ? (
         <p className="text-center text-muted py-16">
-          No sessions match your filters. Try another category or search term.
+          {videos.length === 0
+            ? "No recordings yet. After your sessions are processed, they will appear here."
+            : "No sessions match your filters. Try another category or search term."}
         </p>
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -84,7 +102,12 @@ export function VideoLibraryGrid() {
   );
 }
 
-function VideoCard({ video }: { video: MockVideo }) {
+function VideoCard({ video }: { video: LibraryVideo }) {
+  const processing = video.status === "processing";
+  const href = video.publicUrl
+    ? video.publicUrl
+    : `/portal/session/${video.sessionId}`;
+
   return (
     <article className="group rounded-2xl border border-border bg-white overflow-hidden shadow-soft transition-all duration-300 hover:shadow-elevated hover:-translate-y-0.5">
       <div className="relative aspect-video-card overflow-hidden bg-forest/10">
@@ -96,15 +119,25 @@ function VideoCard({ video }: { video: MockVideo }) {
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
         />
         <div className="absolute inset-0 bg-forest-deep/20 group-hover:bg-forest-deep/35 transition-colors" />
-        <Link
-          href={`/portal/session/${video.sessionId}`}
-          className="absolute inset-0 flex items-center justify-center"
-          aria-label={`Play ${video.title}`}
-        >
-          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-cream/95 text-forest shadow-elevated transition-transform group-hover:scale-110">
-            <Play className="h-6 w-6 ml-0.5" fill="currentColor" aria-hidden />
-          </span>
-        </Link>
+        {processing ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-cream">
+            <Loader2 className="h-8 w-8 animate-spin mb-2" />
+            <span className="text-xs">Processing</span>
+          </div>
+        ) : (
+          <Link
+            href={href}
+            className="absolute inset-0 flex items-center justify-center"
+            aria-label={`Open ${video.title}`}
+            {...(video.publicUrl
+              ? { target: "_blank", rel: "noopener noreferrer" }
+              : {})}
+          >
+            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-cream/95 text-forest shadow-elevated transition-transform group-hover:scale-110">
+              <Play className="h-6 w-6 ml-0.5" fill="currentColor" aria-hidden />
+            </span>
+          </Link>
+        )}
         <span className="absolute bottom-3 right-3 rounded-md bg-forest-deep/80 px-2 py-0.5 text-xs text-cream">
           {video.duration}
         </span>
@@ -127,6 +160,9 @@ function VideoCard({ video }: { video: MockVideo }) {
               {c}
             </Badge>
           ))}
+          {video.status && video.status !== "ready" && (
+            <Badge variant="outline">{video.status}</Badge>
+          )}
         </div>
         {video.notes && (
           <p className="text-sm text-ink-soft line-clamp-2">{video.notes}</p>

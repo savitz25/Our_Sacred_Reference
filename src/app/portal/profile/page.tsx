@@ -1,25 +1,73 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { mockClient } from "@/lib/mock-data";
+import { createClient } from "@/lib/supabase/client";
+import { updateProfile } from "@/app/actions/profile";
+import type { Profile } from "@/lib/database.types";
 
 export default function PortalProfilePage() {
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({
-    name: mockClient.name,
-    email: mockClient.email,
+    name: "",
+    email: "",
     phone: "",
     timezone: "America/Los_Angeles",
     notifications: true,
     recordingConsent: true,
   });
 
-  function handleSave(e: React.FormEvent) {
+  useEffect(() => {
+    const supabase = createClient();
+    (async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (data) {
+        setProfile(data);
+        setForm({
+          name: data.full_name ?? "",
+          email: data.email,
+          phone: data.phone ?? "",
+          timezone: data.timezone ?? "America/Los_Angeles",
+          notifications: data.notifications_enabled,
+          recordingConsent: data.recording_consent,
+        });
+      }
+      setLoading(false);
+    })();
+  }, []);
+
+  async function handleSave(e: React.FormEvent) {
     e.preventDefault();
+    setError(null);
+    const result = await updateProfile({
+      full_name: form.name,
+      phone: form.phone,
+      timezone: form.timezone,
+      notifications_enabled: form.notifications,
+      recording_consent: form.recordingConsent,
+    });
+    if (!result.success) {
+      setError(result.error ?? "Save failed");
+      return;
+    }
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
+  }
+
+  if (loading) {
+    return <p className="text-muted">Loading profile…</p>;
   }
 
   return (
@@ -30,7 +78,17 @@ export default function PortalProfilePage() {
         </h1>
         <p className="mt-2 text-ink-soft">
           Account management, intake preferences, and notification settings.
-          Member since {mockClient.memberSince}.
+          {profile?.created_at && (
+            <>
+              {" "}
+              Member since{" "}
+              {new Date(profile.created_at).toLocaleDateString("en-US", {
+                month: "long",
+                year: "numeric",
+              })}
+              .
+            </>
+          )}
         </p>
       </div>
 
@@ -44,13 +102,24 @@ export default function PortalProfilePage() {
               value={form.name}
               onChange={(v) => setForm((f) => ({ ...f, name: v }))}
             />
-            <Field
-              label="Email"
-              id="email"
-              type="email"
-              value={form.email}
-              onChange={(v) => setForm((f) => ({ ...f, email: v }))}
-            />
+            <div>
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-ink mb-1.5"
+              >
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={form.email}
+                disabled
+                className="w-full rounded-xl border border-border bg-cream-dark/40 px-4 py-2.5 text-sm text-muted"
+              />
+              <p className="mt-1 text-xs text-muted">
+                Email is managed via authentication.
+              </p>
+            </div>
             <Field
               label="Phone"
               id="phone"
@@ -120,16 +189,11 @@ export default function PortalProfilePage() {
           </div>
         </Card>
 
-        <Card>
-          <h2 className="font-serif text-xl text-forest mb-2">Intake forms</h2>
-          <p className="text-sm text-muted mb-4">
-            Placeholder for secure intake documents and consents (Phase 2 —
-            Supabase storage).
+        {error && (
+          <p className="text-sm text-red-700" role="alert">
+            {error}
           </p>
-          <Button type="button" variant="outline" size="sm" disabled>
-            Upload form (coming soon)
-          </Button>
-        </Card>
+        )}
 
         <div className="flex items-center gap-4">
           <Button type="submit" variant="primary">
@@ -137,7 +201,7 @@ export default function PortalProfilePage() {
           </Button>
           {saved && (
             <p className="text-sm text-teal" role="status">
-              Preferences saved (mock).
+              Preferences saved.
             </p>
           )}
         </div>

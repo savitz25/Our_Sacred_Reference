@@ -2,10 +2,19 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Leaf, LayoutDashboard, Film, User, LogOut, Menu, X } from "lucide-react";
-import { useState } from "react";
+import {
+  Leaf,
+  LayoutDashboard,
+  Film,
+  User,
+  LogOut,
+  Menu,
+  X,
+} from "lucide-react";
+import { useState, useTransition } from "react";
 import { portalNav, siteConfig } from "@/lib/content";
 import { cn } from "@/lib/utils";
+import { signOut } from "@/app/actions/auth";
 
 const icons = {
   "/portal": LayoutDashboard,
@@ -13,9 +22,15 @@ const icons = {
   "/portal/profile": User,
 } as const;
 
-export function PortalNav() {
+interface PortalNavProps {
+  userName?: string;
+  userRole?: string;
+}
+
+export function PortalNav({ userName, userRole }: PortalNavProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [pending, startTransition] = useTransition();
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-white/95 backdrop-blur-md">
@@ -29,11 +44,16 @@ export function PortalNav() {
               {siteConfig.name}
             </span>
             <span className="text-xs text-muted border-l border-border pl-3 ml-1 hidden md:inline">
-              Client Portal
+              {userRole === "practitioner" || userRole === "admin"
+                ? "Practitioner"
+                : "Client Portal"}
             </span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-1" aria-label="Portal">
+          <nav
+            className="hidden md:flex items-center gap-1"
+            aria-label="Portal"
+          >
             {portalNav.map((item) => {
               const Icon = icons[item.href as keyof typeof icons];
               const active =
@@ -60,19 +80,28 @@ export function PortalNav() {
         </div>
 
         <div className="flex items-center gap-2">
+          {userName && (
+            <span className="hidden lg:inline text-sm text-muted truncate max-w-[140px]">
+              {userName}
+            </span>
+          )}
           <Link
             href="/"
             className="hidden sm:inline text-sm text-muted hover:text-forest"
           >
             Public site
           </Link>
-          <Link
-            href="/login"
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => startTransition(() => signOut())}
             className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm text-ink-soft hover:bg-forest/5"
           >
             <LogOut className="h-4 w-4" aria-hidden />
-            <span className="hidden sm:inline">Sign out</span>
-          </Link>
+            <span className="hidden sm:inline">
+              {pending ? "Signing out…" : "Sign out"}
+            </span>
+          </button>
           <button
             type="button"
             className="md:hidden flex h-10 w-10 items-center justify-center rounded-full hover:bg-forest/5"

@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
-import { getAvailableSlots } from "@/lib/mock-data";
+import { getBookedSlotsForDate } from "@/app/actions/booking";
 import { cn } from "@/lib/utils";
 
 interface CalendarPlaceholderProps {
@@ -10,6 +10,14 @@ interface CalendarPlaceholderProps {
   selectedDate?: Date | null;
   selectedTime?: string | null;
 }
+
+const DEFAULT_SLOTS = [
+  "9:00 AM",
+  "11:00 AM",
+  "1:00 PM",
+  "3:00 PM",
+  "5:00 PM",
+];
 
 function startOfMonth(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), 1);
@@ -27,6 +35,13 @@ function sameDay(a: Date, b: Date) {
   );
 }
 
+function toDateIso(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
 export function CalendarPlaceholder({
@@ -42,7 +57,11 @@ export function CalendarPlaceholder({
 
   const [viewMonth, setViewMonth] = useState(() => startOfMonth(today));
   const [localDate, setLocalDate] = useState<Date | null>(selectedDate ?? null);
-  const [localTime, setLocalTime] = useState<string | null>(selectedTime ?? null);
+  const [localTime, setLocalTime] = useState<string | null>(
+    selectedTime ?? null
+  );
+  const [booked, setBooked] = useState<string[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
 
   const activeDate = selectedDate ?? localDate;
   const activeTime = selectedTime ?? localTime;
@@ -54,7 +73,30 @@ export function CalendarPlaceholder({
     year: "numeric",
   });
 
-  const slots = activeDate ? getAvailableSlots(activeDate) : [];
+  useEffect(() => {
+    if (!activeDate) {
+      setBooked([]);
+      return;
+    }
+    let cancelled = false;
+    setLoadingSlots(true);
+    getBookedSlotsForDate(toDateIso(activeDate))
+      .then((slots) => {
+        if (!cancelled) setBooked(slots);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingSlots(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeDate]);
+
+  const availableSlots = DEFAULT_SLOTS.filter((s) => {
+    // Normalize comparison for booked times
+    const bookedNorm = booked.map((b) => b.replace(/\s+/g, " ").trim());
+    return !bookedNorm.includes(s);
+  });
 
   function selectDate(day: number) {
     const d = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), day);
@@ -123,7 +165,11 @@ export function CalendarPlaceholder({
         ))}
         {Array.from({ length: totalDays }).map((_, i) => {
           const day = i + 1;
-          const d = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), day);
+          const d = new Date(
+            viewMonth.getFullYear(),
+            viewMonth.getMonth(),
+            day
+          );
           const isPast = d < today;
           const isWeekend = d.getDay() === 0 || d.getDay() === 6;
           const disabled = isPast || isWeekend;
@@ -169,12 +215,15 @@ export function CalendarPlaceholder({
               : "Select a weekday to see available times"}
           </span>
         </div>
-        {activeDate && slots.length === 0 && (
+        {loadingSlots && (
+          <p className="text-sm text-muted mb-2">Checking availability…</p>
+        )}
+        {activeDate && !loadingSlots && availableSlots.length === 0 && (
           <p className="text-sm text-muted">No availability on this day.</p>
         )}
-        {slots.length > 0 && (
+        {availableSlots.length > 0 && (
           <div className="flex flex-wrap gap-2">
-            {slots.map((time) => (
+            {availableSlots.map((time) => (
               <button
                 key={time}
                 type="button"
@@ -194,8 +243,8 @@ export function CalendarPlaceholder({
         )}
       </div>
       <p className="mt-4 text-xs text-muted">
-        Design placeholder — real-time availability will connect to Cal.com or
-        custom scheduling in a later phase.
+        Live availability from Supabase. Booked slots are hidden automatically.
+        Optional Cal.com embed can replace this UI later.
       </p>
     </div>
   );
