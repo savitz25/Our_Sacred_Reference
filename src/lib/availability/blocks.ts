@@ -1,27 +1,36 @@
 import type { AvailabilityBlock } from "@/lib/database.types";
 import {
+  MIN_BOOKING_LEAD_MINUTES,
   SLOT_DURATION_MINUTES,
-  slotToDate,
+  isSlotInBookableFuture,
   slotToMinutes,
   timeToMinutes,
-  toDateIso,
+  wallClockToUtc,
 } from "@/lib/availability/slots";
 
 /**
  * Returns true if the given bookable slot is covered by any active block.
+ * Uses client timezone offset so wall-clock times match the booking UI.
  */
 export function isSlotBlocked(
   dateIso: string,
   timeLabel: string,
-  blocks: AvailabilityBlock[]
+  blocks: AvailabilityBlock[],
+  timezoneOffsetMinutes?: number | null
 ): boolean {
-  const slotStart = slotToDate(dateIso, timeLabel);
+  const slotStart = wallClockToUtc(
+    dateIso,
+    timeLabel,
+    timezoneOffsetMinutes
+  );
   const slotEnd = new Date(
     slotStart.getTime() + SLOT_DURATION_MINUTES * 60 * 1000
   );
   const slotMin = slotToMinutes(timeLabel);
   const slotEndMin = slotMin + SLOT_DURATION_MINUTES;
-  const day = slotStart.getDay();
+  // Day-of-week in the client's wall calendar (from dateIso components)
+  const [y, mo, d] = dateIso.slice(0, 10).split("-").map(Number);
+  const day = new Date(y, mo - 1, d).getDay();
 
   for (const b of blocks) {
     if (!b.is_active) continue;
@@ -37,7 +46,7 @@ export function isSlotBlocked(
       const starts = b.starts_on.slice(0, 10);
       const ends = (b.ends_on ?? b.starts_on).slice(0, 10);
       if (dateIso < starts || dateIso > ends) continue;
-      if (!b.start_time || !b.end_time) return true; // whole day(s)
+      if (!b.start_time || !b.end_time) return true;
       const bStart = timeToMinutes(b.start_time);
       const bEnd = timeToMinutes(b.end_time);
       if (slotMin < bEnd && slotEndMin > bStart) return true;
@@ -49,7 +58,6 @@ export function isSlotBlocked(
       if (b.recurrence_until && dateIso > b.recurrence_until.slice(0, 10)) {
         continue;
       }
-      // Only apply from created_at day forward (optional)
       if (b.starts_on && dateIso < b.starts_on.slice(0, 10)) continue;
       if (!b.start_time || !b.end_time) return true;
       const bStart = timeToMinutes(b.start_time);
@@ -61,33 +69,34 @@ export function isSlotBlocked(
   return false;
 }
 
-/** True if every default slot on that date is blocked (whole day unavailable). */
-export function isDayFullyBlocked(
-  dateIso: string,
-  blocks: AvailabilityBlock[],
-  defaultSlots: string[]
-): boolean {
-  if (defaultSlots.length === 0) return false;
-  return defaultSlots.every((slot) => isSlotBlocked(dateIso, slot, blocks));
-}
-
 export function filterAvailableSlots(
   dateIso: string,
   candidateSlots: string[],
   blocks: AvailabilityBlock[],
-  bookedLabels: string[]
+  bookedLabels: string[],
+  timezoneOffsetMinutes?: number | null
 ): string[] {
   const bookedNorm = new Set(
     bookedLabels.map((b) => b.replace(/\s+/g, " ").trim())
   );
+  const day = dateIso.slice(0, 10);
+
   return candidateSlots.filter((slot) => {
     if (bookedNorm.has(slot)) return false;
-    if (isSlotBlocked(dateIso, slot, blocks)) return false;
-    // Hide past slots for today
-    const when = slotToDate(dateIso, slot);
-    if (when.getTime() < Date.now() - 2 * 60 * 1000) return false;
+    if (isSlotBlocked(day, slot, blocks, timezoneOffsetMinutes)) return false;
+    // Same-day: require MIN_BOOKING_LEAD_MINUTES from now (timezone-aware)
+    if (
+      !isSlotInBookableFuture(
+        day,
+        slot,
+        timezoneOffsetMinutes,
+        MIN_BOOKING_LEAD_MINUTES
+      )
+    ) {
+      return false;
+    }
     return true;
   });
 }
 
-export { toDateIso };
+export { wallClockToUtc };

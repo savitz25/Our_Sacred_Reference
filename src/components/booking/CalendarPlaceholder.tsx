@@ -72,7 +72,8 @@ export function CalendarPlaceholder({
     }
     let cancelled = false;
     setLoadingSlots(true);
-    getAvailableSlotsForDate(toDateIso(activeDate))
+    const offset = new Date().getTimezoneOffset();
+    getAvailableSlotsForDate(toDateIso(activeDate), offset)
       .then((res) => {
         if (!cancelled) setAvailableSlots(res.slots ?? []);
       })
@@ -209,7 +210,8 @@ export function CalendarPlaceholder({
         )}
         {activeDate && !loadingSlots && availableSlots.length === 0 && (
           <p className="text-sm text-muted">
-            No availability on this day (booked or blocked).
+            No open times left this day (booked, blocked, or less than 30
+            minutes from now). Try another day.
           </p>
         )}
         {availableSlots.length > 0 && (

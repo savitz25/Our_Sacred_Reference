@@ -7,6 +7,11 @@ import type { SessionType } from "@/lib/database.types";
 import { INFORMED_CONSENT_VERSION } from "@/lib/legal";
 import { sendBookingConfirmationEmail } from "@/lib/email";
 import { assertSlotIsBookable } from "@/app/actions/availability";
+import {
+  MIN_BOOKING_LEAD_MINUTES,
+  isSlotInBookableFuture,
+  wallClockToUtc,
+} from "@/lib/availability/slots";
 
 export type BookingResult = {
   success: boolean;
@@ -37,24 +42,6 @@ function withTimeout<T>(
         reject(e);
       });
   });
-}
-
-function parseLocalSlot(dateIso: string, timeLabel: string): Date {
-  // timeLabel like "9:00 AM" or "3:00 PM"
-  const parts = timeLabel.trim().split(/\s+/);
-  const timePart = parts[0] ?? "9:00";
-  const meridiem = (parts[1] ?? "").toUpperCase();
-  const [hStr, mStr] = timePart.split(":");
-  let hours = parseInt(hStr, 10);
-  const minutes = parseInt(mStr ?? "0", 10);
-  if (Number.isNaN(hours)) hours = 9;
-  if (meridiem === "PM" && hours < 12) hours += 12;
-  if (meridiem === "AM" && hours === 12) hours = 0;
-
-  const [y, mo, d] = dateIso.slice(0, 10).split("-").map(Number);
-  // Construct as UTC noon-based offset-safe local wall time via Date.UTC then
-  // use components — keep simple wall-clock interpretation for scheduling UI
-  return new Date(y, mo - 1, d, hours, minutes, 0, 0);
 }
 
 function friendlyError(err: unknown): string {
@@ -100,6 +87,11 @@ export async function bookDiscoverySession(input: {
   date: string;
   time: string;
   sessionType?: SessionType;
+  /**
+   * From `new Date().getTimezoneOffset()` on the client.
+   * Required for correct same-day validation on UTC servers (Vercel).
+   */
+  timezoneOffsetMinutes?: number;
 }): Promise<BookingResult> {
   try {
     // —— Validation ——
@@ -130,7 +122,15 @@ export async function bookDiscoverySession(input: {
     }
 
     const fullName = `${input.firstName.trim()} ${input.lastName.trim()}`.trim();
-    const scheduledAt = parseLocalSlot(input.date, input.time);
+    const dateIso = input.date.slice(0, 10);
+    const offset =
+      typeof input.timezoneOffsetMinutes === "number" &&
+      !Number.isNaN(input.timezoneOffsetMinutes)
+        ? input.timezoneOffsetMinutes
+        : null;
+
+    // Convert client wall-clock → absolute UTC (fixes Vercel UTC false "past" rejections)
+    const scheduledAt = wallClockToUtc(dateIso, input.time, offset);
 
     if (Number.isNaN(scheduledAt.getTime())) {
       return {
@@ -139,20 +139,45 @@ export async function bookDiscoverySession(input: {
       };
     }
 
-    // Allow a 2-minute grace period for clock skew; reject clearly past slots
-    const graceMs = 2 * 60 * 1000;
-    if (scheduledAt.getTime() < Date.now() - graceMs) {
+    console.info(
+      "[booking] validate slot date=%s time=%s offset=%s scheduledUtc=%s now=%s",
+      dateIso,
+      input.time,
+      offset,
+      scheduledAt.toISOString(),
+      new Date().toISOString()
+    );
+
+    // Same-day OK if slot is at least MIN_BOOKING_LEAD_MINUTES from now
+    if (
+      !isSlotInBookableFuture(
+        dateIso,
+        input.time,
+        offset,
+        MIN_BOOKING_LEAD_MINUTES
+      )
+    ) {
+      const minsUntil = Math.round(
+        (scheduledAt.getTime() - Date.now()) / 60000
+      );
+      if (minsUntil < 0) {
+        return {
+          success: false,
+          error: `That time has already passed in your timezone. Please choose a later slot today (at least ${MIN_BOOKING_LEAD_MINUTES} minutes from now) or another day.`,
+        };
+      }
       return {
         success: false,
-        error: "Please choose a future date and time.",
+        error: `Please choose a time at least ${MIN_BOOKING_LEAD_MINUTES} minutes from now so we can prepare for your session.`,
       };
     }
 
     // Respect practitioner availability blocks + already booked times
     try {
       const bookable = await assertSlotIsBookable(
-        input.date.slice(0, 10),
-        input.time
+        dateIso,
+        input.time,
+        offset
       );
       if (!bookable.ok) {
         return { success: false, error: bookable.error };

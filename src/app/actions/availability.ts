@@ -226,32 +226,63 @@ export async function deleteAvailabilityBlock(
 
 /**
  * Public: available slots for a calendar day (default − booked − blocked).
+ * Pass client timezoneOffsetMinutes (from Date#getTimezoneOffset) for correct same-day filtering.
  */
 export async function getAvailableSlotsForDate(
-  dateIso: string
+  dateIso: string,
+  timezoneOffsetMinutes?: number | null
 ): Promise<{ slots: string[]; booked: string[]; error?: string }> {
   const day = dateIso.slice(0, 10);
+  const offset =
+    timezoneOffsetMinutes == null || Number.isNaN(timezoneOffsetMinutes)
+      ? null
+      : timezoneOffsetMinutes;
+
   try {
     const admin = createAdminClient();
+    // Query sessions for this calendar day using a wide UTC window so
+    // timezone differences don't drop same-day bookings
     const [y, mo, d] = day.split("-").map(Number);
-    const start = new Date(y, mo - 1, d, 0, 0, 0);
-    const end = new Date(y, mo - 1, d, 23, 59, 59);
+    const windowStart = new Date(Date.UTC(y, mo - 1, d - 1, 0, 0, 0));
+    const windowEnd = new Date(Date.UTC(y, mo - 1, d + 1, 23, 59, 59));
 
     const { data: sessions } = await admin
       .from("sessions")
       .select("scheduled_at")
-      .gte("scheduled_at", start.toISOString())
-      .lte("scheduled_at", end.toISOString())
+      .gte("scheduled_at", windowStart.toISOString())
+      .lte("scheduled_at", windowEnd.toISOString())
       .neq("status", "cancelled");
 
-    const booked = (sessions ?? []).map((row) => {
-      const dt = new Date(row.scheduled_at);
-      return dt.toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-      });
-    });
+    // Map booked times back to wall-clock labels in the client's zone
+    const booked = (sessions ?? [])
+      .map((row) => {
+        const dt = new Date(row.scheduled_at);
+        // Convert UTC instant to client wall clock for label matching
+        if (offset != null) {
+          const localMs = dt.getTime() - offset * 60 * 1000;
+          const local = new Date(localMs);
+          // Use UTC getters on the shifted value = client local components
+          const ly = local.getUTCFullYear();
+          const lm = local.getUTCMonth() + 1;
+          const ld = local.getUTCDate();
+          const iso = `${ly}-${String(lm).padStart(2, "0")}-${String(ld).padStart(2, "0")}`;
+          if (iso !== day) return null;
+          const h = local.getUTCHours();
+          const mi = local.getUTCMinutes();
+          const mer = h >= 12 ? "PM" : "AM";
+          const h12 = h % 12 === 0 ? 12 : h % 12;
+          return `${h12}:${String(mi).padStart(2, "0")} ${mer}`;
+        }
+        // Fallback server-local
+        const iso = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+        if (iso !== day) return null;
+        return dt.toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+        });
+      })
+      .filter((x): x is string => Boolean(x));
 
     const { data: blocks, error: bErr } = await admin
       .from("availability_blocks")
@@ -266,6 +297,15 @@ export async function getAvailableSlotsForDate(
       day,
       [...DEFAULT_BOOKABLE_SLOTS],
       blocks ?? [],
+      booked,
+      offset
+    );
+
+    console.info(
+      "[availability] day=%s offset=%s available=%j booked=%j",
+      day,
+      offset,
+      slots,
       booked
     );
 
@@ -282,14 +322,21 @@ export async function getAvailableSlotsForDate(
 
 export async function assertSlotIsBookable(
   dateIso: string,
-  timeLabel: string
+  timeLabel: string,
+  timezoneOffsetMinutes?: number | null
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const { slots } = await getAvailableSlotsForDate(dateIso);
-  if (!slots.includes(timeLabel)) {
+  const { slots } = await getAvailableSlotsForDate(
+    dateIso,
+    timezoneOffsetMinutes
+  );
+  // Normalize spacing for comparison ("3:00 PM" vs "3:00  PM")
+  const norm = (s: string) => s.replace(/\s+/g, " ").trim();
+  const wanted = norm(timeLabel);
+  if (!slots.some((s) => norm(s) === wanted)) {
     return {
       ok: false,
       error:
-        "That time is no longer available (booked or blocked). Please choose another slot.",
+        "That time is no longer available (it may be booked, blocked, or too soon). Please choose another slot — same-day times need at least 30 minutes notice.",
     };
   }
   return { ok: true };

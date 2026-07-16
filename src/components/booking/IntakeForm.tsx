@@ -107,6 +107,8 @@ export function IntakeForm({
         date: `${y}-${m}-${d}`,
         time: selectedTime,
         sessionType: "discovery",
+        // Critical for same-day slots on Vercel (UTC server)
+        timezoneOffsetMinutes: new Date().getTimezoneOffset(),
       });
 
       window.clearTimeout(stepTimer);
