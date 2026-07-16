@@ -54,30 +54,21 @@ npm install
 
 ### 2. Environment variables
 
-Copy `.env.example` → `.env.local` and fill values:
+Copy the root template to a local env file and fill in your Supabase keys:
 
 ```bash
 cp .env.example .env.local
 ```
 
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://mbboakpdxgquntlohlix.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-SUPABASE_SERVICE_ROLE_KEY=...
-NEXT_PUBLIC_SITE_URL=http://localhost:3000
+See [`.env.example`](./.env.example) for required variables:
 
-# Optional — real WebRTC
-LIVEKIT_API_KEY=
-LIVEKIT_API_SECRET=
-NEXT_PUBLIC_LIVEKIT_URL=
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
 
-# Optional — post-session email
-RESEND_API_KEY=
-RESEND_FROM_EMAIL=Sacred Reference <hello@yourdomain.com>
+Optional LiveKit and Resend keys are commented in `.env.example` — uncomment when ready.
 
-# Optional — first login with this email can be promoted to practitioner in SQL
-PRACTITIONER_EMAIL=michele@sacredreference.com
-```
+This project’s Supabase URL is typically `https://mbboakpdxgquntlohlix.supabase.co` (use your dashboard values for the keys). You may also set `NEXT_PUBLIC_SITE_URL=http://localhost:3000` for auth redirects.
 
 > Vercel: set the same variables in Project → Settings → Environment Variables.
 
