@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createUserForBooking } from "@/app/actions/auth";
 import type { SessionType } from "@/lib/database.types";
+import { INFORMED_CONSENT_VERSION } from "@/lib/legal";
 
 export type BookingResult = {
   success: boolean;
@@ -35,7 +36,10 @@ export async function bookDiscoverySession(input: {
   phone?: string;
   password: string;
   intention?: string;
+  /** Communications / privacy consent */
   consent: boolean;
+  /** Required Informed Consent (not clinical therapy) */
+  informedConsent: boolean;
   /** ISO date string YYYY-MM-DD */
   date: string;
   /** e.g. "3:00 PM" */
@@ -43,7 +47,17 @@ export async function bookDiscoverySession(input: {
   sessionType?: SessionType;
 }): Promise<BookingResult> {
   if (!input.consent) {
-    return { success: false, error: "Consent is required to book." };
+    return {
+      success: false,
+      error: "Communications consent is required to book.",
+    };
+  }
+  if (!input.informedConsent) {
+    return {
+      success: false,
+      error:
+        "You must agree to the Informed Consent before confirming your booking.",
+    };
   }
   if (!input.email || !input.password || input.password.length < 8) {
     return {
@@ -109,7 +123,8 @@ export async function bookDiscoverySession(input: {
     };
   }
 
-  // 3. Create session record
+  // 3. Create session record (includes informed consent audit fields)
+  const consentAt = new Date().toISOString();
   const { data: session, error: sessionError } = await admin
     .from("sessions")
     .insert({
@@ -123,6 +138,8 @@ export async function bookDiscoverySession(input: {
       meeting_url: `/portal/session/${roomName}`,
       notes: input.intention ?? null,
       recording_enabled: true,
+      informed_consent_at: consentAt,
+      informed_consent_version: INFORMED_CONSENT_VERSION,
     })
     .select("id")
     .single();
@@ -142,6 +159,36 @@ export async function bookDiscoverySession(input: {
       livekit_room: `session-${session.id}`,
     })
     .eq("id", session.id);
+
+  // 4. Persist consent records (Informed Consent + communications)
+  await admin.from("consents").insert([
+    {
+      user_id: userId,
+      session_id: session.id,
+      consent_type: "informed_consent",
+      version: INFORMED_CONSENT_VERSION,
+      agreed: true,
+      agreed_at: consentAt,
+      metadata: {
+        source: "book-session",
+        session_type: sessionType,
+        label:
+          "I have read and agree to the Informed Consent and understand that these sessions are for personal growth and alternative healing, not medical or clinical therapy.",
+      },
+    },
+    {
+      user_id: userId,
+      session_id: session.id,
+      consent_type: "communications",
+      version: INFORMED_CONSENT_VERSION,
+      agreed: true,
+      agreed_at: consentAt,
+      metadata: {
+        source: "book-session",
+        email: input.email.trim().toLowerCase(),
+      },
+    },
+  ]);
 
   revalidatePath("/portal");
   revalidatePath("/portal/library");

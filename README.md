@@ -21,8 +21,24 @@ Supabase project: `https://mbboakpdxgquntlohlix.supabase.co`
 | Portal dashboard & library (real data) | ✅ |
 | LiveKit video rooms | ✅ when env set; demo mode otherwise |
 | Post-session pipeline webhook | ✅ metadata + optional Resend |
+| **Phase 3 legal disclaimers + consent flow** | ✅ |
+| Terms / Privacy Policy / Informed Consent pages | ✅ |
 | Stripe payments | ⏳ TODO |
 | Full HIPAA/BAA production hardening | ⏳ TODO |
+
+### Legal pages (Phase 3)
+
+| Route | Document |
+|-------|----------|
+| [`/terms`](https://github.com/savitz25/Our_Sacred_Reference/blob/main/src/app/terms/page.tsx) | Terms of Service |
+| [`/privacy-policy`](https://github.com/savitz25/Our_Sacred_Reference/blob/main/src/app/privacy-policy/page.tsx) | Privacy Policy |
+| [`/consent`](https://github.com/savitz25/Our_Sacred_Reference/blob/main/src/app/consent/page.tsx) | Informed Consent / Service Agreement |
+
+**Site-wide disclaimer** (homepage below hero, book-session page, footer on every public page): Sacred Reference offers alternative health, somatic, and mytho-shamanic coaching for personal growth — **not** licensed medical, psychological, or clinical therapy; not a substitute for professional care; sessions are confidential but **not HIPAA-protected**.
+
+**Booking:** Required Informed Consent checkbox before “Confirm Free Discovery Session.” Agreement is stored in Supabase (`consents` table + `sessions.informed_consent_*` fields). Run migration `002_consents.sql` after `001`.
+
+> These pages are for product/legal UX and are not a substitute for attorney review.
 
 ---
 
@@ -69,8 +85,9 @@ PRACTITIONER_EMAIL=michele@sacredreference.com
 
 1. Open [Supabase SQL Editor](https://supabase.com/dashboard/project/mbboakpdxgquntlohlix/sql)
 2. Paste and run: `supabase/migrations/001_initial_schema.sql`
-3. Confirm tables: `profiles`, `sessions`, `videos`, `availability_slots`
-4. Confirm storage bucket: `session-recordings` (private)
+3. Paste and run: `supabase/migrations/002_consents.sql` (Informed Consent records)
+4. Confirm tables: `profiles`, `sessions`, `videos`, `availability_slots`, `consents`
+5. Confirm storage bucket: `session-recordings` (private)
 
 Optional — set Michele as practitioner after she signs up:
 
@@ -193,6 +210,7 @@ Recording: practitioner toggle is UI-ready; wire **LiveKit Egress** to Supabase 
 4. **Phase 2.3** — Scheduling → Supabase sessions  
 5. **Phase 2.4** — LiveKit token + room (demo fallback)  
 6. **Phase 2.5** — Post-session webhook pipeline  
+7. **Phase 3** — Legal disclaimers, Terms, Privacy Policy, Informed Consent, booking consent storage  
 
 ---
 

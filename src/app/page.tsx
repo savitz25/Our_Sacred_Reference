@@ -3,6 +3,7 @@ import { Mission } from "@/components/home/Mission";
 import { ApproachCards } from "@/components/home/ApproachCards";
 import { Testimonials } from "@/components/home/Testimonials";
 import { CTABanner } from "@/components/home/CTABanner";
+import { DisclaimerBanner } from "@/components/legal/DisclaimerBanner";
 import { Section, SectionHeader } from "@/components/ui/Section";
 import { Button } from "@/components/ui/Button";
 import { blogPosts, offerings } from "@/lib/content";
@@ -15,6 +16,10 @@ export default function HomePage() {
   return (
     <>
       <Hero />
+      {/* Prominent service disclaimer — Phase 3 legal */}
+      <div className="bg-cream border-b border-border">
+        <DisclaimerBanner variant="hero-below" className="py-6 sm:py-8" />
+      </div>
       <Mission />
       <ApproachCards />
 

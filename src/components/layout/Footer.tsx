@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Leaf } from "lucide-react";
 import { navigation, siteConfig } from "@/lib/content";
+import { DisclaimerBanner } from "@/components/legal/DisclaimerBanner";
+import { legalNav } from "@/lib/legal";
 
 export function Footer() {
   const pathname = usePathname();
@@ -50,7 +52,7 @@ export function Footer() {
 
           <div>
             <h3 className="text-sm font-medium tracking-wide text-gold-soft uppercase mb-4">
-              Connect
+              Connect & legal
             </h3>
             <ul className="space-y-2.5 text-sm text-cream/70">
               <li>
@@ -69,6 +71,16 @@ export function Footer() {
                   Client Portal Login
                 </Link>
               </li>
+              {legalNav.map((item) => (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    className="hover:text-cream transition-colors"
+                  >
+                    {item.name}
+                  </Link>
+                </li>
+              ))}
               <li>
                 <a
                   href={`mailto:${siteConfig.email}`}
@@ -81,16 +93,28 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-12 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-t border-cream/10 pt-8 text-xs text-cream/50">
+        {/* Site-wide disclaimer in footer */}
+        <DisclaimerBanner variant="footer" className="mt-10" />
+
+        <div className="mt-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-t border-cream/10 pt-8 text-xs text-cream/50">
           <p>
             © {year} {siteConfig.name}. All rights reserved.
           </p>
-          <div className="flex gap-6">
-            <Link href="/privacy" className="hover:text-cream/80 transition-colors">
-              Privacy
+          <div className="flex flex-wrap gap-x-6 gap-y-2">
+            <Link
+              href="/privacy-policy"
+              className="hover:text-cream/80 transition-colors"
+            >
+              Privacy Policy
             </Link>
             <Link href="/terms" className="hover:text-cream/80 transition-colors">
-              Terms
+              Terms of Service
+            </Link>
+            <Link
+              href="/consent"
+              className="hover:text-cream/80 transition-colors"
+            >
+              Informed Consent
             </Link>
           </div>
         </div>

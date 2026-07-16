@@ -84,6 +84,8 @@ export interface Database {
           livekit_room: string | null;
           notes: string | null;
           recording_enabled: boolean;
+          informed_consent_at: string | null;
+          informed_consent_version: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -100,6 +102,8 @@ export interface Database {
           livekit_room?: string | null;
           notes?: string | null;
           recording_enabled?: boolean;
+          informed_consent_at?: string | null;
+          informed_consent_version?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -116,8 +120,46 @@ export interface Database {
           livekit_room?: string | null;
           notes?: string | null;
           recording_enabled?: boolean;
+          informed_consent_at?: string | null;
+          informed_consent_version?: string | null;
           created_at?: string;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      consents: {
+        Row: {
+          id: string;
+          user_id: string;
+          session_id: string | null;
+          consent_type: string;
+          version: string;
+          agreed: boolean;
+          agreed_at: string;
+          metadata: Json | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          session_id?: string | null;
+          consent_type: string;
+          version?: string;
+          agreed?: boolean;
+          agreed_at?: string;
+          metadata?: Json | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          session_id?: string | null;
+          consent_type?: string;
+          version?: string;
+          agreed?: boolean;
+          agreed_at?: string;
+          metadata?: Json | null;
+          created_at?: string;
         };
         Relationships: [];
       };

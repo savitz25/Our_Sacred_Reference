@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Section } from "@/components/ui/Section";
 import { CalendarPlaceholder } from "@/components/booking/CalendarPlaceholder";
 import { IntakeForm } from "@/components/booking/IntakeForm";
+import { DisclaimerBanner } from "@/components/legal/DisclaimerBanner";
 
 export default function BookSessionPage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -26,18 +27,22 @@ export default function BookSessionPage() {
         </div>
       </section>
 
-      <Section className="bg-cream">
+      <Section className="bg-cream pt-10 sm:pt-12">
+        <DisclaimerBanner variant="banner" className="mb-10" />
+
         <ol className="mb-10 flex flex-wrap gap-4 sm:gap-8 text-sm">
-          {["Select date & time", "Complete intake", "Confirm & access portal"].map(
-            (step, i) => (
-              <li key={step} className="flex items-center gap-2 text-ink-soft">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-forest text-cream text-xs font-medium">
-                  {i + 1}
-                </span>
-                {step}
-              </li>
-            )
-          )}
+          {[
+            "Select date & time",
+            "Complete intake",
+            "Confirm consent & book",
+          ].map((step, i) => (
+            <li key={step} className="flex items-center gap-2 text-ink-soft">
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-forest text-cream text-xs font-medium">
+                {i + 1}
+              </span>
+              {step}
+            </li>
+          ))}
         </ol>
 
         <div className="grid gap-8 lg:grid-cols-2 lg:items-start">

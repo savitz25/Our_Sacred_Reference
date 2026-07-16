@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { bookDiscoverySession } from "@/app/actions/booking";
+import { informedConsentCheckboxLabel } from "@/lib/legal";
 
 interface IntakeFormProps {
   selectedDate: Date | null;
@@ -30,7 +32,8 @@ export function IntakeForm({
     phone: "",
     password: "",
     intention: "",
-    consent: false,
+    communicationsConsent: false,
+    informedConsent: false,
   });
 
   const canSubmit =
@@ -38,7 +41,8 @@ export function IntakeForm({
     form.lastName &&
     form.email &&
     form.password.length >= 8 &&
-    form.consent &&
+    form.communicationsConsent &&
+    form.informedConsent &&
     selectedDate &&
     selectedTime &&
     !loading;
@@ -46,6 +50,13 @@ export function IntakeForm({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!canSubmit || !selectedDate || !selectedTime) return;
+
+    if (!form.informedConsent) {
+      setError(
+        "You must agree to the Informed Consent before confirming your booking."
+      );
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -61,7 +72,8 @@ export function IntakeForm({
       phone: form.phone || undefined,
       password: form.password,
       intention: form.intention || undefined,
-      consent: form.consent,
+      consent: form.communicationsConsent,
+      informedConsent: form.informedConsent,
       date: `${y}-${m}-${d}`,
       time: selectedTime,
       sessionType: "discovery",
@@ -108,7 +120,7 @@ export function IntakeForm({
               for <strong>{form.email}</strong>
             </>
           ) : null}
-          .
+          . Your Informed Consent has been recorded.
         </p>
         {message && (
           <p className="mt-3 text-sm text-teal-muted">{message}</p>
@@ -222,17 +234,54 @@ export function IntakeForm({
       <label className="flex items-start gap-3 cursor-pointer">
         <input
           type="checkbox"
-          checked={form.consent}
+          checked={form.communicationsConsent}
           onChange={(e) =>
-            setForm((f) => ({ ...f, consent: e.target.checked }))
+            setForm((f) => ({
+              ...f,
+              communicationsConsent: e.target.checked,
+            }))
           }
           className="mt-1 h-4 w-4 rounded border-border text-teal focus:ring-teal"
           required
         />
         <span className="text-sm text-ink-soft leading-relaxed">
           I consent to receiving session communications and understand this is
-          not a crisis service. I agree to the privacy practices described on
-          this site.
+          not a crisis service. I agree to the{" "}
+          <Link
+            href="/privacy-policy"
+            className="text-teal hover:underline"
+            target="_blank"
+          >
+            Privacy Policy
+          </Link>
+          .
+        </span>
+      </label>
+
+      {/* Required Informed Consent — immediately before confirm */}
+      <label className="flex items-start gap-3 cursor-pointer rounded-xl border border-gold/40 bg-cream-dark/40 p-4">
+        <input
+          type="checkbox"
+          checked={form.informedConsent}
+          onChange={(e) =>
+            setForm((f) => ({ ...f, informedConsent: e.target.checked }))
+          }
+          className="mt-1 h-4 w-4 rounded border-border text-teal focus:ring-teal"
+          required
+          aria-required="true"
+          id="informedConsent"
+        />
+        <span className="text-sm text-ink leading-relaxed">
+          {informedConsentCheckboxLabel}{" "}
+          <Link
+            href="/consent"
+            className="text-teal font-medium hover:underline"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Read full Informed Consent
+          </Link>
+          .
         </span>
       </label>
 
