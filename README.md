@@ -65,7 +65,7 @@ Fill in real values in `.env.local` (never commit this file):
 | `NEXT_PUBLIC_SUPABASE_URL` | Pre-filled (`mbboakpdxgquntlohlix`) |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase → Settings → API → anon public |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Settings → API → service_role |
-| `NEXT_PUBLIC_SITE_URL` | `http://localhost:3000` locally; production HTTPS domain on Vercel |
+| `NEXT_PUBLIC_SITE_URL` | **Production (required on Vercel):** `https://www.oursacredreference.com` — used for emails, booking/session links, auth redirects. Localhost is rejected for public/email URLs. |
 | `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` / `NEXT_PUBLIC_LIVEKIT_URL` | [LiveKit Cloud](https://cloud.livekit.io) |
 | `SUPABASE_S3_ACCESS_KEY` / `SUPABASE_S3_SECRET_KEY` | Supabase → Storage → S3 Access Keys |
 | `RESEND_API_KEY` | [Resend](https://resend.com) → API Keys |

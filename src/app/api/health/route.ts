@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
+import { getSiteUrl } from "@/lib/site-url";
 
 /**
  * Lightweight health check for uptime monitors and deploy verification.
  * Does not expose secrets.
  */
 export async function GET() {
+  const resolvedSiteUrl = getSiteUrl();
   const checks = {
     ok: true,
     timestamp: new Date().toISOString(),
@@ -13,6 +15,8 @@ export async function GET() {
       supabaseAnon: Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
       serviceRole: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
       siteUrl: Boolean(process.env.NEXT_PUBLIC_SITE_URL),
+      /** Resolved public origin used in emails/links (never localhost) */
+      resolvedSiteUrl,
       livekit: Boolean(
         process.env.LIVEKIT_API_KEY &&
           process.env.LIVEKIT_API_SECRET &&

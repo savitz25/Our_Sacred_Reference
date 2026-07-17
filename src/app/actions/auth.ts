@@ -4,12 +4,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getSiteUrl } from "@/lib/site-url";
 
+/** Magic-link / email redirects — production public origin only */
 function siteUrl() {
-  const site = process.env.NEXT_PUBLIC_SITE_URL;
-  if (site) return site.replace(/\/$/, "");
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return "http://localhost:3000";
+  return getSiteUrl();
 }
 
 export type AuthResult = {

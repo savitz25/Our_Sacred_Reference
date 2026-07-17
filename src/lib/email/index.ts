@@ -12,4 +12,6 @@ export {
   getPractitionerNotifyEmail,
   appointmentRecipients,
   getSiteUrl,
+  absoluteUrl,
+  PRODUCTION_SITE_URL,
 } from "@/lib/email/config";

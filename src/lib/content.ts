@@ -4,15 +4,18 @@
  * integrated with the modern full-stack site voice.
  */
 
+import { getSiteUrl } from "@/lib/site-url";
+
 export const siteConfig = {
   name: "Sacred Reference",
   tagline: "A mytho-shamanic return to the wisdom of your soul…",
   shortTagline: "Mytho-Shamanic Somatic Healing",
   description:
     "Beneath every wound, every defense, and every life story there is Wholeness, something sacred waiting to be remembered. A Path of Remembering through somatic awareness, feminine wisdom, and mytho-shamanic practice.",
-  url:
-    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
-    "https://www.oursacredreference.com",
+  /** Resolved at read time — never localhost for public links */
+  get url() {
+    return getSiteUrl();
+  },
   practitioner: "Michele Castro",
   practitionerFirst: "Michele",
   email: "michele@oursacredreference.com",
