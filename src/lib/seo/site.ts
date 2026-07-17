@@ -2,12 +2,36 @@
  * Canonical site URL + SEO defaults for Sacred Reference (2026).
  */
 
+/** Always the public production origin (no trailing slash). */
+export const PRODUCTION_SITE_URL = "https://www.oursacredreference.com";
+
+/**
+ * Public site origin for metadata, sitemap, robots, and JSON-LD.
+ * Never returns localhost — local/preview envs fall back to production
+ * so crawl surfaces (especially sitemap.xml) stay valid for GSC.
+ */
 export function getSiteUrl(): string {
   const fromEnv = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, "");
-  if (fromEnv && !/movetrusthub/i.test(fromEnv)) {
-    return fromEnv;
+  if (
+    fromEnv &&
+    !/localhost|127\.0\.0\.1|0\.0\.0\.0|movetrusthub/i.test(fromEnv) &&
+    /^https:\/\//i.test(fromEnv)
+  ) {
+    // Prefer the canonical production host when env points at a Vercel preview
+    if (
+      /oursacredreference\.com$/i.test(fromEnv.replace(/^https?:\/\//, "")) ||
+      fromEnv === PRODUCTION_SITE_URL
+    ) {
+      // Normalize apex → www
+      if (fromEnv === "https://oursacredreference.com") {
+        return PRODUCTION_SITE_URL;
+      }
+      return fromEnv;
+    }
+    // Preview / other hosts: still use production for SEO public URLs
+    return PRODUCTION_SITE_URL;
   }
-  return "https://www.oursacredreference.com";
+  return PRODUCTION_SITE_URL;
 }
 
 export const SEO = {

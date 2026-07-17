@@ -1,8 +1,9 @@
 import type { MetadataRoute } from "next";
-import { getSiteUrl } from "@/lib/seo/site";
+import { PRODUCTION_SITE_URL } from "@/lib/seo/site";
 
 export default function robots(): MetadataRoute.Robots {
-  const base = getSiteUrl();
+  // Always production host — never localhost in robots.txt sitemap pointer
+  const base = PRODUCTION_SITE_URL;
 
   return {
     rules: [

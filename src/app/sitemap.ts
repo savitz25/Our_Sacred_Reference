@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { getPostsSorted } from "@/lib/blog/posts";
-import { getSiteUrl } from "@/lib/seo/site";
+import { PRODUCTION_SITE_URL } from "@/lib/seo/site";
 
 type Freq = MetadataRoute.Sitemap[number]["changeFrequency"];
 
@@ -21,8 +21,12 @@ const STATIC_ROUTES: {
   // /login intentionally omitted (noindex / low value)
 ];
 
+/**
+ * Sitemap always uses the production domain.
+ * Do not depend on localhost or preview env vars for crawl URLs.
+ */
 export default function sitemap(): MetadataRoute.Sitemap {
-  const base = getSiteUrl();
+  const base = PRODUCTION_SITE_URL;
   const now = new Date();
 
   const staticEntries: MetadataRoute.Sitemap = STATIC_ROUTES.map((r) => ({
