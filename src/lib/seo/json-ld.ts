@@ -23,7 +23,9 @@ export function organizationJsonLd(): JsonLd {
     },
     logo: {
       "@type": "ImageObject",
-      url: `${site}${SEO.ogImagePath}`,
+      url: `${site}/logo.svg`,
+      width: 64,
+      height: 64,
     },
     sameAs: [] as string[],
     contactPoint: {
@@ -165,7 +167,7 @@ export function blogPostingJsonLd(post: BlogPost): JsonLd {
       url: site,
       logo: {
         "@type": "ImageObject",
-        url: `${site}${SEO.ogImagePath}`,
+        url: `${site}/logo.svg`,
       },
     },
     mainEntityOfPage: { "@type": "WebPage", "@id": url },

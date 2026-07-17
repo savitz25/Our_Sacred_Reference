@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Menu, X, Leaf } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { navigation, siteConfig } from "@/lib/content";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
@@ -27,9 +28,14 @@ export function Header() {
           className="group flex items-center gap-2.5 shrink-0"
           aria-label={`${siteConfig.name} home`}
         >
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-forest text-gold transition-transform group-hover:scale-105">
-            <Leaf className="h-4 w-4" aria-hidden />
-          </span>
+          <Image
+            src="/logo.svg"
+            alt=""
+            width={36}
+            height={36}
+            className="h-9 w-9 rounded-full shadow-soft transition-transform group-hover:scale-105"
+            priority
+          />
           <span className="font-serif text-lg sm:text-xl text-forest tracking-tight">
             {siteConfig.name}
           </span>

@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Leaf } from "lucide-react";
 import { navigation, siteConfig } from "@/lib/content";
 import { DisclaimerBanner } from "@/components/legal/DisclaimerBanner";
 import { legalNav } from "@/lib/legal";
@@ -20,9 +20,13 @@ export function Footer() {
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
           <div className="lg:col-span-2">
             <Link href="/" className="inline-flex items-center gap-2.5 group">
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gold/20 text-gold">
-                <Leaf className="h-4 w-4" aria-hidden />
-              </span>
+              <Image
+                src="/logo.svg"
+                alt=""
+                width={36}
+                height={36}
+                className="h-9 w-9 rounded-full"
+              />
               <span className="font-serif text-xl">{siteConfig.name}</span>
             </Link>
             <p className="mt-4 max-w-md text-sm leading-relaxed text-cream/70">

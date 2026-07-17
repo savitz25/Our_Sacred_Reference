@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
-  Leaf,
   LayoutDashboard,
   Film,
   User,
@@ -44,9 +44,14 @@ export function PortalNav({ userName, userRole }: PortalNavProps) {
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-3 sm:px-8">
         <div className="flex items-center gap-6">
           <Link href="/portal" className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-forest text-gold">
-              <Leaf className="h-3.5 w-3.5" aria-hidden />
-            </span>
+            <Image
+              src="/logo.svg"
+              alt=""
+              width={32}
+              height={32}
+              className="h-8 w-8 rounded-full"
+              priority
+            />
             <span className="font-serif text-lg text-forest hidden sm:inline">
               {siteConfig.name}
             </span>
