@@ -9,6 +9,10 @@ import {
 } from "@/lib/email/config";
 import {
   bookingConfirmationHtml,
+  emergencyAcceptedPractitionerHtml,
+  emergencyDeclinedPractitionerHtml,
+  emergencyProposalClientHtml,
+  emergencyRequestPractitionerHtml,
   practitionerSessionReminderHtml,
   practitionerSessionRescheduledHtml,
   recordingReadyHtml,
@@ -368,4 +372,100 @@ export async function getProfileEmail(
     .maybeSingle();
   if (!data?.email) return null;
   return data;
+}
+
+export async function sendEmergencyRequestToPractitioner(input: {
+  clientName: string;
+  clientEmail: string;
+  reason?: string | null;
+}): Promise<SendResult> {
+  if (!isResendConfigured()) {
+    return { sent: false, reason: "RESEND_API_KEY not set" };
+  }
+  const site = getSiteUrl();
+  return sendEmail({
+    to: getPractitionerNotifyEmail(),
+    subject: `Emergency session request — ${input.clientName}`,
+    html: emergencyRequestPractitionerHtml({
+      ...input,
+      adminUrl: `${site}/admin?tab=emergency`,
+    }),
+    tags: [{ name: "type", value: "emergency_request" }],
+  });
+}
+
+export async function sendEmergencyProposalToClient(input: {
+  to: string;
+  fullName: string;
+  proposedAt: Date;
+  delayMinutes: number;
+  responseToken: string;
+}): Promise<SendResult> {
+  if (!isResendConfigured()) {
+    return { sent: false, reason: "RESEND_API_KEY not set" };
+  }
+  const site = getSiteUrl();
+  const token = encodeURIComponent(input.responseToken);
+  return sendEmail({
+    to: input.to,
+    subject: input.delayMinutes === 0
+      ? "Michele is available for an emergency session now"
+      : `Emergency session proposed — starts in ~${input.delayMinutes} min`,
+    html: emergencyProposalClientHtml({
+      fullName: input.fullName,
+      proposedAt: input.proposedAt,
+      delayMinutes: input.delayMinutes,
+      isInstant: input.delayMinutes === 0,
+      acceptUrl: `${site}/api/emergency/respond?token=${token}&action=accept`,
+      declineUrl: `${site}/api/emergency/respond?token=${token}&action=decline`,
+    }),
+    tags: [{ name: "type", value: "emergency_proposal" }],
+  });
+}
+
+export async function sendEmergencyDeclinedToPractitioner(input: {
+  clientName: string;
+  clientEmail: string;
+  proposedAt?: Date | null;
+}): Promise<SendResult> {
+  if (!isResendConfigured()) {
+    return { sent: false, reason: "RESEND_API_KEY not set" };
+  }
+  const site = getSiteUrl();
+  return sendEmail({
+    to: getPractitionerNotifyEmail(),
+    subject: `Emergency session declined — ${input.clientName}`,
+    html: emergencyDeclinedPractitionerHtml({
+      ...input,
+      adminUrl: `${site}/admin?tab=emergency`,
+    }),
+    tags: [{ name: "type", value: "emergency_declined" }],
+  });
+}
+
+export async function sendEmergencyAcceptedToPractitioner(input: {
+  clientName: string;
+  clientEmail: string;
+  proposedAt: Date;
+  isInstant: boolean;
+  sessionId: string;
+}): Promise<SendResult> {
+  if (!isResendConfigured()) {
+    return { sent: false, reason: "RESEND_API_KEY not set" };
+  }
+  const site = getSiteUrl();
+  return sendEmail({
+    to: getPractitionerNotifyEmail(),
+    subject: input.isInstant
+      ? `Join now — ${input.clientName} accepted emergency session`
+      : `Emergency session accepted — ${input.clientName}`,
+    html: emergencyAcceptedPractitionerHtml({
+      clientName: input.clientName,
+      clientEmail: input.clientEmail,
+      proposedAt: input.proposedAt,
+      isInstant: input.isInstant,
+      sessionUrl: `${site}/portal/session/${input.sessionId}`,
+    }),
+    tags: [{ name: "type", value: "emergency_accepted" }],
+  });
 }

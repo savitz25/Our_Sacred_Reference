@@ -4,6 +4,7 @@ import {
   fetchAdminSessions,
   fetchAdminVideos,
 } from "@/lib/admin/queries";
+import { listEmergencyRequestsForAdmin } from "@/app/actions/emergency";
 import { AdminDashboard } from "@/components/admin/AdminDashboard";
 
 export const metadata: Metadata = {
@@ -13,18 +14,32 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminPage() {
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
   // Layout already gates; re-check for defense in depth
   const { profile } = await requirePractitioner("/admin");
+  const sp = searchParams ? await searchParams : {};
+  const initialTab =
+    typeof sp.tab === "string" &&
+    ["appointments", "recordings", "availability", "emergency"].includes(sp.tab)
+      ? (sp.tab as "appointments" | "recordings" | "availability" | "emergency")
+      : "appointments";
 
   let sessions: Awaited<ReturnType<typeof fetchAdminSessions>> = [];
   let videos: Awaited<ReturnType<typeof fetchAdminVideos>> = [];
+  let emergencyRequests: Awaited<
+    ReturnType<typeof listEmergencyRequestsForAdmin>
+  > = [];
   let loadError: string | null = null;
 
   try {
     const results = await Promise.allSettled([
       fetchAdminSessions(),
       fetchAdminVideos(),
+      listEmergencyRequestsForAdmin(),
     ]);
 
     if (results[0].status === "fulfilled") {
@@ -41,6 +56,12 @@ export default async function AdminPage() {
       loadError = loadError
         ? `${loadError} Could not load recordings.`
         : "Could not load recordings.";
+    }
+
+    if (results[2].status === "fulfilled") {
+      emergencyRequests = results[2].value;
+    } else {
+      console.error("[admin/page] emergency:", results[2].reason);
     }
   } catch (e) {
     console.error("[admin/page] unexpected:", e);
@@ -69,6 +90,8 @@ export default async function AdminPage() {
       <AdminDashboard
         sessions={sessions}
         videos={videos}
+        emergencyRequests={emergencyRequests}
+        initialTab={initialTab}
         practitionerName={
           profile.full_name || profile.email || "Practitioner"
         }

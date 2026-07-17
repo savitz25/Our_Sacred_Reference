@@ -6,11 +6,18 @@ import { Badge } from "@/components/ui/Badge";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { UpcomingSessionsPanel } from "@/components/portal/UpcomingSessionsPanel";
+import { EmergencyRequestButton } from "@/components/portal/EmergencyRequestButton";
+import { EmergencyPortalBanner } from "@/components/portal/EmergencyPortalBanner";
 
-export default async function PortalDashboardPage() {
+export default async function PortalDashboardPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { profile, user } = await requireProfile();
   const supabase = await createClient();
   const now = new Date().toISOString();
+  const sp = searchParams ? await searchParams : {};
 
   const { data: upcoming } = await supabase
     .from("sessions")
@@ -54,6 +61,16 @@ export default async function PortalDashboardPage() {
     profile.email.split("@")[0] ||
     "there";
 
+  const emergencyFlag =
+    typeof sp.emergency === "string" ? sp.emergency : undefined;
+  const emergencyMsg =
+    typeof sp.msg === "string" ? sp.msg : undefined;
+  const emergencySession =
+    typeof sp.session === "string" ? sp.session : undefined;
+
+  const isClient =
+    profile.role !== "practitioner" && profile.role !== "admin";
+
   return (
     <div>
       <div className="mb-10">
@@ -67,6 +84,18 @@ export default async function PortalDashboardPage() {
           Your sacred space for sessions, recordings, and the path ahead.
         </p>
       </div>
+
+      <EmergencyPortalBanner
+        flag={emergencyFlag}
+        message={emergencyMsg}
+        sessionId={emergencySession}
+      />
+
+      {isClient && (
+        <div className="mb-8">
+          <EmergencyRequestButton />
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-3 mb-10">
         <div className="lg:col-span-2 space-y-0">

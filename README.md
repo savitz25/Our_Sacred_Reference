@@ -104,6 +104,7 @@ In [Supabase SQL Editor](https://supabase.com/dashboard/project/mbboakpdxgquntlo
 4. `supabase/migrations/004_admin_profile_select.sql`
 5. `supabase/migrations/005_availability_blocks.sql` (admin calendar blocks)
 6. `supabase/migrations/006_session_reminder_1h.sql` (1-hour reminder de-dupe column)
+7. `supabase/migrations/007_emergency_requests.sql` (emergency session requests)
 
 **Michele admin account** (password via env only — never commit):
 

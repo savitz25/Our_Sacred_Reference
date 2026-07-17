@@ -28,6 +28,13 @@ export type AvailabilityBlockKind =
   | "date_range"
   | "datetime_range"
   | "recurring_weekly";
+export type EmergencyRequestStatus =
+  | "pending"
+  | "proposed"
+  | "accepted"
+  | "declined"
+  | "expired"
+  | "cancelled";
 
 export interface Database {
   public: {
@@ -254,6 +261,54 @@ export interface Database {
         };
         Relationships: [];
       };
+      emergency_requests: {
+        Row: {
+          id: string;
+          user_id: string;
+          reason: string | null;
+          status: EmergencyRequestStatus;
+          delay_minutes: number | null;
+          proposed_at: string | null;
+          proposed_by: string | null;
+          practitioner_note: string | null;
+          session_id: string | null;
+          response_token: string;
+          client_responded_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          reason?: string | null;
+          status?: EmergencyRequestStatus;
+          delay_minutes?: number | null;
+          proposed_at?: string | null;
+          proposed_by?: string | null;
+          practitioner_note?: string | null;
+          session_id?: string | null;
+          response_token: string;
+          client_responded_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          reason?: string | null;
+          status?: EmergencyRequestStatus;
+          delay_minutes?: number | null;
+          proposed_at?: string | null;
+          proposed_by?: string | null;
+          practitioner_note?: string | null;
+          session_id?: string | null;
+          response_token?: string;
+          client_responded_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       availability_blocks: {
         Row: {
           id: string;
@@ -322,6 +377,7 @@ export interface Database {
       session_type: SessionType;
       video_status: VideoStatus;
       availability_block_kind: AvailabilityBlockKind;
+      emergency_request_status: EmergencyRequestStatus;
     };
     CompositeTypes: Record<string, never>;
   };
@@ -332,3 +388,5 @@ export type Session = Database["public"]["Tables"]["sessions"]["Row"];
 export type Video = Database["public"]["Tables"]["videos"]["Row"];
 export type AvailabilityBlock =
   Database["public"]["Tables"]["availability_blocks"]["Row"];
+export type EmergencyRequest =
+  Database["public"]["Tables"]["emergency_requests"]["Row"];

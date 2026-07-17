@@ -418,6 +418,184 @@ function sanitizeClientFacingNotes(notes?: string | null): string {
     .slice(0, 800);
 }
 
+/** Notify Michele of a new emergency request */
+export function emergencyRequestPractitionerHtml(input: {
+  clientName: string;
+  clientEmail: string;
+  reason?: string | null;
+  adminUrl: string;
+}): string {
+  const reasonBlock = input.reason?.trim()
+    ? `<p style="margin:12px 0 0;font-size:14px;color:${BRAND.muted};"><strong style="color:${BRAND.forest};">Client note:</strong><br/>${escapeHtml(input.reason.trim())}</p>`
+    : `<p style="margin:12px 0 0;font-size:13px;color:${BRAND.muted};">No additional note was provided.</p>`;
+
+  return layout({
+    preheader: `Emergency session request from ${input.clientName}`,
+    title: "Emergency session request",
+    bodyHtml: `
+      <p style="margin:0 0 14px;">Dear Michele,</p>
+      <p style="margin:0 0 14px;">
+        A client has submitted an <strong style="color:${BRAND.forest};">Emergency Session Request</strong>
+        and is asking for an immediate or near-term session.
+      </p>
+      <table role="presentation" width="100%" style="background:${BRAND.cream};border-radius:12px;margin:16px 0;">
+        <tr>
+          <td style="padding:16px 18px;font-size:14px;line-height:1.6;">
+            <strong style="color:${BRAND.forest};">${escapeHtml(input.clientName)}</strong><br/>
+            <a href="mailto:${escapeHtml(input.clientEmail)}" style="color:${BRAND.teal};">${escapeHtml(input.clientEmail)}</a>
+            ${reasonBlock}
+          </td>
+        </tr>
+      </table>
+      <p style="margin:0 0 14px;">
+        Open the admin dashboard to accept and propose either an instant meeting or a short delay (15–60 minutes).
+      </p>
+    `,
+    ctaLabel: "Open admin — emergency requests",
+    ctaHref: input.adminUrl,
+    footerNote: "Internal notification from Sacred Reference.",
+  });
+}
+
+/** Client: Michele proposed a time — Accept / Decline */
+export function emergencyProposalClientHtml(input: {
+  fullName: string;
+  proposedAt: Date;
+  delayMinutes: number;
+  acceptUrl: string;
+  declineUrl: string;
+  isInstant: boolean;
+}): string {
+  const first = input.fullName.split(" ")[0] || "there";
+  const when = input.proposedAt.toLocaleString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
+  });
+  const timing = input.isInstant
+    ? "Michele can meet with you <strong>now</strong> (instant meeting)."
+    : `Michele can meet with you in about <strong>${input.delayMinutes} minutes</strong>.`;
+
+  return layout({
+    preheader: input.isInstant
+      ? "Michele is available for an emergency session now"
+      : `Michele proposed an emergency session at ${when}`,
+    title: "Your emergency session proposal",
+    bodyHtml: `
+      <p style="margin:0 0 14px;">Dear ${escapeHtml(first)},</p>
+      <p style="margin:0 0 14px;">
+        Michele has responded to your emergency session request. ${timing}
+      </p>
+      <table role="presentation" width="100%" style="background:${BRAND.cream};border-radius:12px;margin:16px 0;">
+        <tr>
+          <td style="padding:16px 18px;font-size:14px;line-height:1.6;">
+            <strong style="color:${BRAND.forest};">Proposed time</strong><br/>
+            <span style="color:${BRAND.ink};">${escapeHtml(when)}</span><br/>
+            <span style="color:${BRAND.muted};">${input.isInstant ? "Start immediately after you accept" : `${input.delayMinutes} minute delay · secure video room`}</span>
+          </td>
+        </tr>
+      </table>
+      <p style="margin:0 0 18px;">
+        Please accept or decline this proposal. If you accept an instant meeting, you will enter the secure video room right away.
+      </p>
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+        <tr>
+          <td align="center" style="padding:4px;">
+            <a href="${escapeHtml(input.acceptUrl)}"
+               style="display:inline-block;background:linear-gradient(135deg,#b8860b,#d4a017,#e8c04a);color:${BRAND.forest};text-decoration:none;font-weight:600;font-size:15px;padding:14px 28px;border-radius:999px;margin:4px;">
+              Accept session
+            </a>
+          </td>
+        </tr>
+        <tr>
+          <td align="center" style="padding:12px 4px 4px;">
+            <a href="${escapeHtml(input.declineUrl)}"
+               style="display:inline-block;background:transparent;color:${BRAND.muted};text-decoration:underline;font-size:14px;padding:8px 16px;">
+              Decline this time
+            </a>
+          </td>
+        </tr>
+      </table>
+    `,
+    footerNote:
+      "If the buttons do not work, sign in to your portal and open the emergency request notification.",
+  });
+}
+
+/** Michele: client declined the proposal */
+export function emergencyDeclinedPractitionerHtml(input: {
+  clientName: string;
+  clientEmail: string;
+  proposedAt?: Date | null;
+  adminUrl: string;
+}): string {
+  const when = input.proposedAt
+    ? input.proposedAt.toLocaleString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      })
+    : "the proposed time";
+
+  return layout({
+    preheader: `${input.clientName} declined the emergency session proposal`,
+    title: "Emergency proposal declined",
+    bodyHtml: `
+      <p style="margin:0 0 14px;">Dear Michele,</p>
+      <p style="margin:0 0 14px;">
+        <strong style="color:${BRAND.forest};">${escapeHtml(input.clientName)}</strong>
+        (<a href="mailto:${escapeHtml(input.clientEmail)}" style="color:${BRAND.teal};">${escapeHtml(input.clientEmail)}</a>)
+        declined the emergency session proposal for ${escapeHtml(when)}.
+      </p>
+      <p style="margin:0;">You may follow up from the admin dashboard or by email if appropriate.</p>
+    `,
+    ctaLabel: "Open admin",
+    ctaHref: input.adminUrl,
+    footerNote: "Internal notification from Sacred Reference.",
+  });
+}
+
+/** Michele: client accepted */
+export function emergencyAcceptedPractitionerHtml(input: {
+  clientName: string;
+  clientEmail: string;
+  proposedAt: Date;
+  isInstant: boolean;
+  sessionUrl: string;
+}): string {
+  const when = input.proposedAt.toLocaleString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+
+  return layout({
+    preheader: `${input.clientName} accepted the emergency session`,
+    title: "Emergency session accepted",
+    bodyHtml: `
+      <p style="margin:0 0 14px;">Dear Michele,</p>
+      <p style="margin:0 0 14px;">
+        <strong style="color:${BRAND.forest};">${escapeHtml(input.clientName)}</strong>
+        accepted the emergency session
+        ${input.isInstant ? "(instant — join now)" : `scheduled for ${escapeHtml(when)}`}.
+      </p>
+      <p style="margin:0 0 8px;font-size:13px;color:${BRAND.muted};">
+        Client: <a href="mailto:${escapeHtml(input.clientEmail)}" style="color:${BRAND.teal};">${escapeHtml(input.clientEmail)}</a>
+      </p>
+    `,
+    ctaLabel: input.isInstant ? "Enter session room" : "Open session room",
+    ctaHref: input.sessionUrl,
+    footerNote: "Internal notification from Sacred Reference.",
+  });
+}
+
 export function recordingReadyHtml(input: {
   fullName: string;
   videoTitle: string;

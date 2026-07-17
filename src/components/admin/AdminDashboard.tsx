@@ -12,15 +12,18 @@ import {
   Play,
   Loader2,
   CalendarOff,
+  HeartHandshake,
 } from "lucide-react";
 import type { AdminSessionRow, AdminVideoRow } from "@/lib/admin/queries";
+import type { EmergencyRequestAdminRow } from "@/app/actions/emergency";
 import { downloadCsv, rowsToCsv } from "@/lib/admin/csv";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { AvailabilityManager } from "@/components/admin/AvailabilityManager";
+import { EmergencyRequestsPanel } from "@/components/admin/EmergencyRequestsPanel";
 import { cn } from "@/lib/utils";
 
-type Tab = "appointments" | "recordings" | "availability";
+type Tab = "appointments" | "recordings" | "availability" | "emergency";
 
 const SESSION_TYPES = [
   "all",
@@ -43,15 +46,19 @@ const SESSION_STATUSES = [
 interface AdminDashboardProps {
   sessions: AdminSessionRow[];
   videos: AdminVideoRow[];
+  emergencyRequests?: EmergencyRequestAdminRow[];
+  initialTab?: Tab;
   practitionerName: string;
 }
 
 export function AdminDashboard({
   sessions,
   videos,
+  emergencyRequests = [],
+  initialTab = "appointments",
   practitionerName,
 }: AdminDashboardProps) {
-  const [tab, setTab] = useState<Tab>("appointments");
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [query, setQuery] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -142,6 +149,10 @@ export function AdminDashboard({
       new Date(s.scheduled_at) >= new Date() &&
       s.status !== "cancelled" &&
       s.status !== "completed"
+  ).length;
+
+  const emergencyOpenCount = emergencyRequests.filter(
+    (r) => r.status === "pending" || r.status === "proposed"
   ).length;
 
   function exportAppointments() {
@@ -235,7 +246,7 @@ export function AdminDashboard({
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 sm:grid-cols-3 mb-8">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
         <StatCard
           label="Total appointments"
           value={sessions.length}
@@ -243,6 +254,11 @@ export function AdminDashboard({
         />
         <StatCard label="Upcoming" value={upcomingCount} icon={Video} />
         <StatCard label="Recordings" value={videos.length} icon={Film} />
+        <StatCard
+          label="Emergency open"
+          value={emergencyOpenCount}
+          icon={HeartHandshake}
+        />
       </div>
 
       {/* Tabs */}
@@ -251,6 +267,18 @@ export function AdminDashboard({
         role="tablist"
         aria-label="Admin sections"
       >
+        <TabButton
+          active={tab === "emergency"}
+          onClick={() => setTab("emergency")}
+        >
+          <HeartHandshake className="h-4 w-4" aria-hidden />
+          Emergency
+          {emergencyOpenCount > 0 && (
+            <span className="rounded-full bg-gold/25 px-1.5 text-xs text-forest">
+              {emergencyOpenCount}
+            </span>
+          )}
+        </TabButton>
         <TabButton
           active={tab === "appointments"}
           onClick={() => setTab("appointments")}
@@ -277,9 +305,12 @@ export function AdminDashboard({
       </div>
 
       {tab === "availability" && <AvailabilityManager />}
+      {tab === "emergency" && (
+        <EmergencyRequestsPanel requests={emergencyRequests} />
+      )}
 
       {/* Filters */}
-      {tab !== "availability" && (
+      {tab !== "availability" && tab !== "emergency" && (
       <div className="rounded-2xl border border-border bg-white p-4 sm:p-5 shadow-soft mb-6 space-y-4">
         <div className="relative">
           <Search

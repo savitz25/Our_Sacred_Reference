@@ -3,6 +3,10 @@ export {
   sendSessionReminderEmail,
   sendSessionRescheduledEmail,
   sendRecordingReadyEmail,
+  sendEmergencyRequestToPractitioner,
+  sendEmergencyProposalToClient,
+  sendEmergencyDeclinedToPractitioner,
+  sendEmergencyAcceptedToPractitioner,
   getProfileEmail,
   type SendResult,
 } from "@/lib/email/send";
