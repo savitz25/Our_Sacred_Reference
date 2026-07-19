@@ -109,10 +109,20 @@ export async function beginSessionRecording(input: {
     };
   }
 
+  const roomName =
+    input.roomName || session.livekit_room || `session-${input.sessionId}`;
+
   const started = await startRoomRecording({
-    roomName: input.roomName || session.livekit_room || `session-${input.sessionId}`,
+    roomName,
     userId: input.userId,
     sessionId: input.sessionId,
+  });
+
+  console.info("[beginSessionRecording]", {
+    sessionId: input.sessionId,
+    roomName,
+    egressId: started.egressId,
+    filepath: started.filepath,
   });
 
   await admin
@@ -120,6 +130,7 @@ export async function beginSessionRecording(input: {
     .update({
       egress_id: started.egressId,
       recording_path: started.filepath,
+      livekit_room: roomName,
       status: "in_progress",
     })
     .eq("id", input.sessionId);
@@ -219,28 +230,34 @@ export async function finalizeSessionRecording(input: {
     steps.push("no_egress_id");
   }
 
-  // Poll briefly for completion (webhook is primary path)
+  // Poll for completion (webhook is primary path; this is a best-effort backup)
   let storagePath =
     session.recording_path ||
     recordingStoragePath(session.user_id, input.sessionId);
 
+  let egressComplete = false;
   if (egressId) {
-    for (let i = 0; i < 5; i++) {
-      await sleep(1500);
+    for (let i = 0; i < 12; i++) {
+      await sleep(2000);
       try {
         const info = await getEgressInfo(egressId);
-        if (!info) break;
-        const status = info.status;
+        if (!info) continue;
+        const status = info.status as number;
         if (
           status === EgressStatus.EGRESS_COMPLETE ||
           status === EgressStatus.EGRESS_ENDING
         ) {
           const filePath = extractEgressFilePath(info);
           if (filePath) {
-            storagePath = normalizeStoragePath(filePath, session.user_id, input.sessionId);
+            storagePath = normalizeStoragePath(
+              filePath,
+              session.user_id,
+              input.sessionId
+            );
           }
           if (status === EgressStatus.EGRESS_COMPLETE) {
             steps.push("egress_complete_polled");
+            egressComplete = true;
             break;
           }
         }
@@ -254,6 +271,7 @@ export async function finalizeSessionRecording(input: {
             .update({
               status: "failed",
               transcript_summary: `Egress failed with status ${status}`,
+              egress_id: egressId,
             })
             .eq("id", videoId);
           return {
@@ -264,30 +282,47 @@ export async function finalizeSessionRecording(input: {
             error: `Egress status ${status}`,
           };
         }
-      } catch {
-        break;
+      } catch (e) {
+        console.warn("[finalize] poll error", e);
       }
     }
   }
 
-  // If S3 is configured, file should already be in Supabase Storage
-  // Run optional FFmpeg when available
+  // Look for uploaded object even if poll timed out (S3 may already have it)
+  if (isSupabaseS3Configured()) {
+    const found = await findRecordingInFolder(
+      session.user_id,
+      input.sessionId
+    );
+    if (found) {
+      storagePath = found;
+      steps.push("storage_found_on_finalize");
+      egressComplete = true;
+    }
+  }
+
   let finalPath = storagePath;
   let durationSeconds: number | undefined;
-  let processMsg = "Awaiting LiveKit egress webhook for final file.";
+  let processMsg = egressComplete
+    ? "Recording captured via LiveKit Egress."
+    : "Awaiting LiveKit egress webhook for final file. Your library will update when processing completes.";
 
-  if (isSupabaseS3Configured()) {
-    const ff = await processRecordingWithFfmpeg(storagePath);
-    finalPath = ff.path;
-    durationSeconds = ff.durationSeconds;
-    processMsg = ff.message;
-    steps.push(ff.processed ? "ffmpeg_processed" : "ffmpeg_skipped");
-  } else {
+  if (isSupabaseS3Configured() && egressComplete) {
+    try {
+      const ff = await processRecordingWithFfmpeg(storagePath);
+      finalPath = ff.path;
+      durationSeconds = ff.durationSeconds;
+      processMsg = ff.message;
+      steps.push(ff.processed ? "ffmpeg_processed" : "ffmpeg_skipped");
+    } catch (e) {
+      console.warn("[finalize] ffmpeg", e);
+      steps.push("ffmpeg_error_ignored");
+    }
+  } else if (!isSupabaseS3Configured()) {
     steps.push("s3_not_configured_await_webhook");
   }
 
-  // If we know egress completed and S3 is set, mark ready now; else stay processing for webhook
-  const markReady = steps.includes("egress_complete_polled") && isSupabaseS3Configured();
+  const markReady = egressComplete;
 
   await admin
     .from("videos")
@@ -312,6 +347,10 @@ export async function finalizeSessionRecording(input: {
     steps.push(emailResult.sent ? "email_sent" : "email_skipped");
   } else {
     steps.push("awaiting_egress_webhook");
+    console.info(
+      "[finalize] leaving video processing — webhook should complete",
+      { sessionId: input.sessionId, egressId, videoId }
+    );
   }
 
   return {
@@ -325,30 +364,86 @@ export async function finalizeSessionRecording(input: {
 
 /**
  * Called from LiveKit webhook when egress ends successfully.
+ * Resolves session/video via egress_id, room name, or storage path.
  */
 export async function onEgressCompleted(input: {
   egressId: string;
+  roomName?: string | null;
   filePath?: string | null;
   durationSeconds?: number | null;
 }): Promise<PipelineResult> {
   const steps: string[] = ["webhook_received"];
   const admin = createAdminClient();
+  console.info("[onEgressCompleted] start", {
+    egressId: input.egressId,
+    roomName: input.roomName,
+    filePath: input.filePath,
+  });
 
-  const { data: session } = await admin
+  // 1) Match session by egress_id
+  let { data: session } = await admin
     .from("sessions")
     .select("*")
     .eq("egress_id", input.egressId)
     .maybeSingle();
 
-  const { data: videoByEgress } = await admin
+  // 2) Match by LiveKit room name (session-{uuid} or stored livekit_room)
+  if (!session && input.roomName) {
+    const room = input.roomName;
+    const byRoom = await admin
+      .from("sessions")
+      .select("*")
+      .eq("livekit_room", room)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    session = byRoom.data;
+
+    if (!session) {
+      const sessionIdFromRoom = room.match(
+        /session-([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i
+      )?.[1];
+      if (sessionIdFromRoom) {
+        const byId = await admin
+          .from("sessions")
+          .select("*")
+          .eq("id", sessionIdFromRoom)
+          .maybeSingle();
+        session = byId.data;
+      }
+    }
+    if (session) steps.push("session_matched_by_room");
+  }
+
+  // 3) Match session id from file path userId/sessionId/...
+  if (!session && input.filePath) {
+    const ids = extractIdsFromPath(input.filePath);
+    if (ids?.sessionId) {
+      const byPath = await admin
+        .from("sessions")
+        .select("*")
+        .eq("id", ids.sessionId)
+        .maybeSingle();
+      session = byPath.data;
+      if (session) steps.push("session_matched_by_path");
+    }
+  }
+
+  // Persist egress_id if we matched session without it
+  if (session && session.egress_id !== input.egressId) {
+    await admin
+      .from("sessions")
+      .update({ egress_id: input.egressId })
+      .eq("id", session.id);
+    steps.push("session_egress_id_backfilled");
+  }
+
+  // Match video
+  let { data: video } = await admin
     .from("videos")
     .select("*")
     .eq("egress_id", input.egressId)
     .maybeSingle();
-
-  let video = videoByEgress;
-  const userId = session?.user_id;
-  const sessionId = session?.id;
 
   if (!video && session) {
     const { data: v } = await admin
@@ -361,53 +456,254 @@ export async function onEgressCompleted(input: {
     video = v;
   }
 
+  const userId = session?.user_id;
+  const sessionId = session?.id;
+
+  // Create video row if we have a session but no video yet
+  if (!video && session && userId && sessionId) {
+    const videoId = await ensureVideoRow({
+      sessionId,
+      userId,
+      title: session.title,
+      sessionType: session.session_type,
+    });
+    const { data: created } = await admin
+      .from("videos")
+      .select("*")
+      .eq("id", videoId)
+      .single();
+    video = created;
+    steps.push("video_row_created");
+  }
+
   if (!video || !userId || !sessionId) {
+    console.error("[onEgressCompleted] no match", {
+      egressId: input.egressId,
+      roomName: input.roomName,
+      filePath: input.filePath,
+      hasSession: Boolean(session),
+      hasVideo: Boolean(video),
+    });
     return {
       success: false,
       mode: "livekit",
-      steps,
+      steps: [...steps, "no_match"],
       error: "No matching video/session for egress",
+    };
+  }
+
+  // Idempotent: already ready
+  if (video.status === "ready" && video.storage_path) {
+    steps.push("already_ready");
+    return {
+      success: true,
+      mode: "livekit",
+      steps,
+      videoId: video.id,
+      storagePath: video.storage_path,
     };
   }
 
   let storagePath =
     input.filePath ||
     video.storage_path ||
+    session?.recording_path ||
     recordingStoragePath(userId, sessionId);
 
   storagePath = normalizeStoragePath(storagePath, userId, sessionId);
+  steps.push(`path:${storagePath}`);
 
-  const ff = await processRecordingWithFfmpeg(storagePath);
-  steps.push(ff.processed ? "ffmpeg_processed" : "ffmpeg_skipped");
+  // Confirm object exists in Supabase Storage (egress may finish a moment before object is visible)
+  const { recordingExists } = await import("@/lib/storage/recordings");
+  let exists = false;
+  for (let i = 0; i < 6; i++) {
+    exists = await recordingExists(storagePath);
+    if (exists) break;
+    // Try listing folder for any mp4 if exact path missing (timestamped filenames)
+    if (i === 2 || i === 4) {
+      const found = await findRecordingInFolder(userId, sessionId);
+      if (found) {
+        storagePath = found;
+        exists = true;
+        steps.push(`path_resolved_from_folder:${found}`);
+        break;
+      }
+    }
+    await sleep(1500);
+  }
+  steps.push(exists ? "storage_object_found" : "storage_object_not_found_yet");
 
-  await admin
+  // Optional FFmpeg — never fail the pipeline if it errors
+  let finalPath = storagePath;
+  let durationSeconds = input.durationSeconds ?? undefined;
+  let processMsg = exists
+    ? "LiveKit egress complete — recording stored privately."
+    : "LiveKit egress complete — file path recorded (storage visibility may lag).";
+
+  try {
+    const ff = await processRecordingWithFfmpeg(storagePath);
+    finalPath = ff.path;
+    durationSeconds = ff.durationSeconds ?? durationSeconds;
+    processMsg = `${processMsg} ${ff.message}`;
+    steps.push(ff.processed ? "ffmpeg_processed" : "ffmpeg_skipped");
+  } catch (e) {
+    console.warn("[onEgressCompleted] ffmpeg error", e);
+    steps.push("ffmpeg_error_ignored");
+  }
+
+  const { error: updateError } = await admin
     .from("videos")
     .update({
       status: "ready",
-      storage_path: ff.path,
-      duration_seconds: ff.durationSeconds ?? input.durationSeconds ?? null,
+      storage_path: finalPath,
+      egress_id: input.egressId,
+      duration_seconds: durationSeconds ?? null,
       category_tags: tagsForType(session?.session_type ?? "individual"),
-      transcript_summary: `Recording ready. ${ff.message}`,
+      transcript_summary: processMsg.slice(0, 500),
     })
     .eq("id", video.id);
 
+  if (updateError) {
+    console.error("[onEgressCompleted] video update failed", updateError);
+    return {
+      success: false,
+      mode: "livekit",
+      steps: [...steps, "db_update_failed"],
+      videoId: video.id,
+      error: updateError.message,
+    };
+  }
+
   steps.push("video_ready");
 
-  const emailResult = await sendRecordingReadyEmail({
-    userId,
+  // Keep session recording_path in sync
+  await admin
+    .from("sessions")
+    .update({
+      recording_path: finalPath,
+      egress_id: input.egressId,
+      status: "completed",
+    })
+    .eq("id", sessionId);
+
+  let emailResult;
+  try {
+    emailResult = await sendRecordingReadyEmail({
+      userId,
+      videoId: video.id,
+      videoTitle: video.title || session?.title || "Session recording",
+      storagePath: finalPath,
+    });
+    steps.push(emailResult.sent ? "email_sent" : `email_skipped:${emailResult.reason}`);
+  } catch (e) {
+    console.warn("[onEgressCompleted] email error", e);
+    steps.push("email_error");
+  }
+
+  console.info("[onEgressCompleted] done", {
     videoId: video.id,
-    videoTitle: video.title,
-    storagePath: ff.path,
+    storagePath: finalPath,
+    steps,
   });
-  steps.push(emailResult.sent ? "email_sent" : "email_skipped");
 
   return {
     success: true,
     mode: "livekit",
     steps,
     videoId: video.id,
-    storagePath: ff.path,
+    storagePath: finalPath,
   };
+}
+
+/** Mark video failed when LiveKit reports terminal egress failure */
+export async function onEgressFailed(input: {
+  egressId: string;
+  roomName?: string | null;
+  error: string;
+}): Promise<PipelineResult> {
+  const steps: string[] = ["webhook_failed_status"];
+  const admin = createAdminClient();
+
+  const { data: byEgress } = await admin
+    .from("videos")
+    .update({
+      status: "failed",
+      transcript_summary: `LiveKit egress failed: ${input.error}`.slice(0, 500),
+    })
+    .eq("egress_id", input.egressId)
+    .select("id")
+    .maybeSingle();
+
+  if (byEgress?.id) {
+    steps.push("video_failed_by_egress_id");
+    return { success: true, mode: "livekit", steps, videoId: byEgress.id };
+  }
+
+  if (input.roomName) {
+    const sessionIdFromRoom = input.roomName.match(
+      /session-([0-9a-f-]{36})/i
+    )?.[1];
+    if (sessionIdFromRoom) {
+      const { data: v } = await admin
+        .from("videos")
+        .update({
+          status: "failed",
+          transcript_summary: `LiveKit egress failed: ${input.error}`.slice(
+            0,
+            500
+          ),
+        })
+        .eq("session_id", sessionIdFromRoom)
+        .select("id")
+        .maybeSingle();
+      if (v?.id) {
+        steps.push("video_failed_by_session");
+        return { success: true, mode: "livekit", steps, videoId: v.id };
+      }
+    }
+  }
+
+  return {
+    success: false,
+    mode: "livekit",
+    steps,
+    error: "No video found to mark failed",
+  };
+}
+
+function extractIdsFromPath(
+  filePath: string
+): { userId: string; sessionId: string } | null {
+  const cleaned = filePath
+    .replace(/^s3:\/\/[^/]+\//, "")
+    .replace(/^https?:\/\/[^/]+\//, "")
+    .replace(/^\//, "");
+  // userId/sessionId/filename.mp4
+  const m = cleaned.match(
+    /^([0-9a-f-]{36})\/([0-9a-f-]{36})\/[^/]+$/i
+  );
+  if (!m) return null;
+  return { userId: m[1], sessionId: m[2] };
+}
+
+async function findRecordingInFolder(
+  userId: string,
+  sessionId: string
+): Promise<string | null> {
+  try {
+    const admin = createAdminClient();
+    const folder = `${userId}/${sessionId}`;
+    const { data, error } = await admin.storage
+      .from(
+        (await import("@/lib/livekit/config")).RECORDINGS_BUCKET
+      )
+      .list(folder, { limit: 20 });
+    if (error || !data?.length) return null;
+    const mp4 = data.find((f) => f.name.toLowerCase().endsWith(".mp4"));
+    return mp4 ? `${folder}/${mp4.name}` : null;
+  } catch {
+    return null;
+  }
 }
 
 function normalizeStoragePath(
@@ -415,15 +711,44 @@ function normalizeStoragePath(
   userId: string,
   sessionId: string
 ): string {
-  // Strip s3://bucket/ prefix if present
-  const p = filePath.replace(/^s3:\/\/[^/]+\//, "");
-  // Prefer standard path if filePath is absolute/odd
-  if (p.startsWith("http") || !p.includes(userId)) {
-    if (p.startsWith("http")) {
-      return recordingStoragePath(userId, sessionId);
-    }
+  let p = filePath
+    .replace(/^s3:\/\/[^/]+\//, "")
+    .replace(/^\//, "");
+
+  // Strip accidental bucket prefix
+  const bucket =
+    process.env.SUPABASE_STORAGE_BUCKET || "session-recordings";
+  if (p.startsWith(`${bucket}/`)) {
+    p = p.slice(bucket.length + 1);
   }
-  return p.replace(/^\//, "");
+
+  // Full URL → fall back to canonical path
+  if (/^https?:\/\//i.test(p)) {
+    try {
+      const u = new URL(p);
+      const parts = u.pathname.split("/").filter(Boolean);
+      // .../object/public/bucket/user/session/file or /storage/v1/s3/bucket/...
+      const bucketIdx = parts.findIndex((x) => x === bucket);
+      if (bucketIdx >= 0 && parts[bucketIdx + 1]) {
+        return parts.slice(bucketIdx + 1).join("/");
+      }
+    } catch {
+      /* ignore */
+    }
+    return recordingStoragePath(userId, sessionId);
+  }
+
+  // Path that already contains user + session ids
+  if (p.includes(userId) && p.includes(sessionId)) {
+    return p;
+  }
+
+  // Bare filename only
+  if (!p.includes("/")) {
+    return recordingStoragePath(userId, sessionId, p || "recording.mp4");
+  }
+
+  return p;
 }
 
 function sleep(ms: number) {
