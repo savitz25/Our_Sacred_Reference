@@ -158,6 +158,107 @@ export const blogPosts: BlogPost[] = [
       },
     ],
   },
+  {
+    slug: "the-felt-sense-language-your-body-has-been-speaking",
+    title: "The Felt Sense: The Language Your Body Has Been Speaking All Along",
+    author: "Michele Castro",
+    date: "2026-07-19",
+    readTime: "8 min",
+    category: "Felt Sense",
+    excerpt:
+      "Healing doesn’t begin when you understand your story. It begins when you can finally feel what your body has been trying to tell you—the felt sense as doorway to capacity, safety, and sacred intelligence within.",
+    description:
+      "Michele Castro on Eugene Gendlin’s felt sense: why insight isn’t enough, how the body speaks in symbols, and why healing unfolds at the speed of safety. Mytho-shamanic somatic wisdom for a Path of Remembering.",
+    coverImage:
+      "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200&q=80",
+    body: [
+      {
+        type: "blockquote",
+        text: "Healing doesn’t begin when you understand your story. It begins when you can finally feel what your body has been trying to tell you.",
+      },
+      {
+        type: "paragraph",
+        text: "Most of us have been taught to live from the neck up.",
+      },
+      {
+        type: "paragraph",
+        text: "We analyze. We explain. We search for answers. We read another book, attend another workshop, or receive another energetic activation, hoping this next insight will finally bring lasting change.",
+      },
+      {
+        type: "paragraph",
+        text: "Yet beneath all of our thoughts lives another form of intelligence—one that existed long before language.",
+      },
+      {
+        type: "paragraph",
+        text: "This is what philosopher Eugene Gendlin called the felt sense.",
+      },
+      {
+        type: "paragraph",
+        text: "The felt sense is not an emotion. It is not a thought. It is not simply a physical sensation. It is the body’s living experience of your entire life, held in this present moment.",
+      },
+      {
+        type: "paragraph",
+        text: "Imagine walking into an old cathedral. Before you notice the architecture or hear the music, something inside you already knows what the space feels like. There is a subtle atmosphere—a quiet knowing that cannot be explained but is immediately recognizable.",
+      },
+      {
+        type: "paragraph",
+        text: "Your inner world works the same way. Every relationship you’ve had, every loss you’ve survived, every moment you felt loved, rejected, abandoned, celebrated, or unseen has left an imprint—not only in memory, but in your body. Your body remembers. Not as a story. As an experience.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Why Insight Isn’t Enough",
+      },
+      {
+        type: "paragraph",
+        text: "Many people know exactly why they struggle. They understand their childhood. They know their attachment style. They can explain every wound in exquisite detail. Yet their body still braces for rejection, collapses into shame, or cannot receive love.",
+      },
+      {
+        type: "paragraph",
+        text: "Healing doesn’t happen simply through understanding. It happens through experience. The nervous system changes when the body is given a new experience—one that it has enough safety and capacity to actually receive. The felt sense is the doorway into that experience.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "The Body Speaks in Symbols",
+      },
+      {
+        type: "paragraph",
+        text: "Our culture often treats the body like a machine that needs fixing. But what if the body is less like a machine and more like an ancient storyteller? The body communicates through tightening, warmth, emptiness, expansion, trembling, tears, pressure, impulses, images, memories, and subtle shifts that are often difficult to name. These are meaningful expressions of your living psyche.",
+      },
+      {
+        type: "paragraph",
+        text: "Carl Jung observed that the unconscious speaks through symbols. Somatic psychology teaches us that those symbols are also lived through the body. When we stay present with the felt sense, the body reveals the next step in healing—not through force, but through unfolding.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "The Wisdom We Were Never Taught",
+      },
+      {
+        type: "paragraph",
+        text: "As children, many of us learned to disconnect from our bodies to preserve connection with others. Over time, this disconnection feels normal. The felt sense restores the conversation between your conscious mind and your living body.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Why We Go Slowly",
+      },
+      {
+        type: "paragraph",
+        text: "The nervous system doesn’t heal through overwhelm. It heals through capacity. Healing happens when we remain present with just enough sensation that the body realizes, “I can feel this, and I don’t have to leave myself.” The body unfolds at the speed of safety.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "The Sacred Intelligence Within",
+      },
+      {
+        type: "paragraph",
+        text: "Across indigenous traditions, contemplative lineages, and depth psychology, wisdom emerges from within. The felt sense is where biology meets psyche, where the nervous system meets the soul, and where the Divine whispers through flesh and breath. Our symptoms are not our enemies; they are invitations. The body has never been working against you. It has been protecting you. Beneath that protection lives an extraordinary intelligence that has never forgotten who you are. Healing becomes less about fixing ourselves and more about remembering ourselves.",
+      },
+    ],
+  },
 ];
 
 export function getPostBySlug(slug: string): BlogPost | undefined {
