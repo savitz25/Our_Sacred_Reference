@@ -159,7 +159,7 @@ export const blogPosts: BlogPost[] = [
     ],
   },
   {
-    slug: "the-felt-sense-language-your-body-has-been-speaking",
+    slug: "the-felt-sense-the-language-your-body-has-been-speaking-all-along",
     title: "The Felt Sense: The Language Your Body Has Been Speaking All Along",
     author: "Michele Castro",
     date: "2026-07-19",

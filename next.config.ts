@@ -111,6 +111,13 @@ const nextConfig: NextConfig = {
         destination: "/offerings",
         permanent: true,
       },
+      // Earlier Felt Sense slug → canonical full slug
+      {
+        source: "/blog/the-felt-sense-language-your-body-has-been-speaking",
+        destination:
+          "/blog/the-felt-sense-the-language-your-body-has-been-speaking-all-along",
+        permanent: true,
+      },
     ];
   },
 };
