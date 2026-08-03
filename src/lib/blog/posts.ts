@@ -259,6 +259,192 @@ export const blogPosts: BlogPost[] = [
       },
     ],
   },
+  {
+    slug: "the-tree-in-the-storm",
+    title:
+      "The Tree in the Storm: How the Body Discovers What the Mind Already Knows",
+    author: "Michele Castro",
+    date: "2026-07-20",
+    readTime: "9 min",
+    category: "Felt Sense",
+    excerpt:
+      "Insight opens a door; the body walks through it. A session story of grounding, a fir tree in a thunderstorm, capacity, and the reclamation of feminine wisdom.",
+    description:
+      "Michele Castro on why insight alone doesn’t transform: a felt-sense session, a fir tree weathering a storm, nervous system capacity, and Divine Feminine wisdom that trusts life’s cycles.",
+    coverImage:
+      "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1200&q=80",
+    body: [
+      {
+        type: "paragraph",
+        text: "One of the greatest misconceptions about healing is that insight creates transformation. It doesn’t.",
+      },
+      {
+        type: "paragraph",
+        text: "Insight can open a door. Walking through that door is something else entirely...",
+      },
+      {
+        type: "paragraph",
+        text: "I was working with a woman in her late sixties who has spent decades immersed in spirituality, shamanism, and personal growth. Nearly forty years earlier, a therapist had offered her a simple, piercing observation:",
+      },
+      {
+        type: "blockquote",
+        text: "You rush your thoughts so you don’t have to feel.",
+      },
+      {
+        type: "paragraph",
+        text: "She understood those words immediately. Intellectually, they made perfect sense. Yet for almost four decades, understanding them had not created change.",
+      },
+      {
+        type: "paragraph",
+        text: "This is something I witness often. We can understand ourselves brilliantly. We can read every book, attend every workshop, memorize every spiritual teaching—and still find ourselves repeating the same patterns. The mind understands. The body has not yet caught up.",
+      },
+      {
+        type: "paragraph",
+        text: "Transformation does not happen because we know something. It happens when the body discovers something.",
+      },
+      {
+        type: "paragraph",
+        text: "This is why my work begins not with analysis, but with the felt sense.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Creating the conditions for support",
+      },
+      {
+        type: "paragraph",
+        text: "Rather than asking her to explain herself, I invited her to slow down. To notice her feet. To feel the support of the bed beneath her. To sense the weight of her pelvis. To notice where her back was being held. To become aware of her breath.",
+      },
+      {
+        type: "paragraph",
+        text: "We weren’t trying to fix anything. We weren’t trying to transcend anything. We were simply creating the conditions for her nervous system to recognize that, in this moment, she was supported.",
+      },
+      {
+        type: "paragraph",
+        text: "As she slowly rolled her ankles and stayed connected to her body, something unexpected emerged. She became aware of a part of herself that didn’t want to be here on Earth. She touched it only briefly. It wasn’t dramatic. It wasn’t overwhelming. It was simply there—quietly waiting beneath decades of thinking.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "When nature becomes the teacher",
+      },
+      {
+        type: "paragraph",
+        text: "And then something extraordinary happened.",
+      },
+      {
+        type: "paragraph",
+        text: "Outside her window, a thunderstorm rolled in. Rain poured down. Thunder echoed. Powerful winds bent the branches of a giant fir tree she could see from where she sat.",
+      },
+      {
+        type: "paragraph",
+        text: "She watched the tree being pushed and pulled by the storm. Its branches grew heavy with rain. The wind tossed them back and forth.",
+      },
+      {
+        type: "paragraph",
+        text: "Then she said something that stopped us both:",
+      },
+      {
+        type: "blockquote",
+        text: "The tree is letting the storm move through it… and it’s still standing.",
+      },
+      {
+        type: "paragraph",
+        text: "In that moment, nature became the teacher. No explanation I could have offered would have been as powerful as what she was witnessing with her own eyes.",
+      },
+      {
+        type: "paragraph",
+        text: "The tree wasn’t resisting the storm. It wasn’t trying to escape the storm. It wasn’t pretending the storm wasn’t happening. It remained deeply rooted while allowing the storm to move through it.",
+      },
+      {
+        type: "paragraph",
+        text: "That is what capacity feels like.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Healing is remaining rooted",
+      },
+      {
+        type: "paragraph",
+        text: "Healing is not the absence of grief. It is not the absence of fear, sadness, anger, or uncertainty. Healing is discovering that we can remain rooted while those experiences move through us.",
+      },
+      {
+        type: "paragraph",
+        text: "As we continued sitting together, the rain began to soften. The wind gradually settled. The thunder grew quiet. The tree was still gently swaying, but the intensity had passed.",
+      },
+      {
+        type: "paragraph",
+        text: "Nothing about the tree had been “fixed.” It had simply stayed present through the changing weather.",
+      },
+      {
+        type: "paragraph",
+        text: "Then something beautiful happened. My client smiled.",
+      },
+      {
+        type: "paragraph",
+        text: "She began speaking about the cyclical nature of life. This was not an idea I taught her. It was not a transmission I gave her. It arose naturally from her own embodied experience.",
+      },
+      {
+        type: "paragraph",
+        text: "As she watched the storm move through the tree and gradually pass, she recognized that our emotional lives are much the same. Grief comes. Joy comes. Fear comes. Love comes. Nothing is meant to be held onto forever, and nothing is meant to be avoided forever. Everything moves in cycles.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "The reclamation of feminine wisdom",
+      },
+      {
+        type: "paragraph",
+        text: "In that moment I witnessed something I have come to recognize as the reclamation of feminine wisdom.",
+      },
+      {
+        type: "paragraph",
+        text: "The feminine is not simply a gendered concept. It is a way of being in relationship with life. It is the wisdom that knows the seasons, the tides, the rhythms of birth and death, contraction and expansion, rest and movement. It does not demand that we remain in a perpetual state of happiness or strive endlessly to maintain a “high vibration.” Instead, it invites us into a deeper trust—that life itself is cyclical, and that every feeling has its own season.",
+      },
+      {
+        type: "paragraph",
+        text: "So much of our suffering comes from believing that difficult emotions mean something has gone wrong. We tighten against grief, resist sadness, fear anger, and judge our vulnerability as a sign of failure. Yet nature tells a different story.",
+      },
+      {
+        type: "paragraph",
+        text: "The tree does not resist the storm. The river does not cling to one season. The Earth does not remain in perpetual spring. Life itself is cyclical.",
+      },
+      {
+        type: "paragraph",
+        text: "As she embodied this truth—not as an idea, but as a lived experience—I watched something soften in her. This wasn’t simply an insight. It was a remembering. A remembering that she, too, belonged to the rhythms of nature. That she didn’t need to fight her inner weather. She could allow it to move through her while remaining deeply rooted in herself.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "When insight becomes lived experience",
+      },
+      {
+        type: "paragraph",
+        text: "For years she had understood intellectually that she rushed her thoughts to avoid feeling. But it wasn’t until her body experienced safety—until she slowed down enough to feel supported, grounded, and present—that something new became possible. The insight became lived experience.",
+      },
+      {
+        type: "paragraph",
+        text: "This is one of the great gifts of working with the body. The body speaks the same language as nature. It understands seasons. It understands tides. It understands cycles. It understands contraction and expansion. It understands storms and stillness.",
+      },
+      {
+        type: "paragraph",
+        text: "When we stop trying to outthink our healing and begin listening through the body, we discover that healing is not about controlling the weather of our lives. It is about growing roots deep enough to remain present through every season.",
+      },
+      {
+        type: "paragraph",
+        text: "The storm will come. The storm will pass. And beneath it all, something steady remains.",
+      },
+      {
+        type: "paragraph",
+        text: "Perhaps that steady presence has been there all along, patiently waiting for us to slow down enough to feel it.",
+      },
+      {
+        type: "paragraph",
+        text: "And perhaps this is one of the deepest expressions of the Divine Feminine: not transcending the cycles of life, but learning to trust them.",
+      },
+    ],
+  },
 ];
 
 export function getPostBySlug(slug: string): BlogPost | undefined {
