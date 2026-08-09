@@ -445,6 +445,363 @@ export const blogPosts: BlogPost[] = [
       },
     ],
   },
+  {
+    slug: "when-the-mind-has-let-go-but-the-body-hasnt",
+    title: "When the Mind Has Let Go, But the Body Hasn’t",
+    author: "Michele Castro",
+    date: "2026-07-21",
+    readTime: "10 min",
+    category: "Somatic Healing",
+    excerpt:
+      "The mind can say “I’m fine” while the body still braces. A session story about capacity, freeze, melting ice slowly, and why embodiment is a different kind of knowing.",
+    description:
+      "Michele Castro on the gap between mental release and body-held stress: somatic listening, freeze beneath high performance, Peter Levine’s voo sound, and why the body learns through sensation and time.",
+    coverImage:
+      "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1200&q=80",
+    body: [
+      {
+        type: "paragraph",
+        text: "Yesterday, I was working with a client who holds a very high-ranking position in corporate America.",
+      },
+      {
+        type: "paragraph",
+        text: "Our sessions are usually fairly light. We talk about marriage, adult children, family dynamics, and some of the deeper wounds he has been working through around his mother and father. He is thoughtful, intelligent, highly capable, and very accustomed to solving problems.",
+      },
+      {
+        type: "paragraph",
+        text: "But yesterday, something different was happening.",
+      },
+      {
+        type: "paragraph",
+        text: "At the beginning of the session, he told me he felt calm and relaxed.",
+      },
+      {
+        type: "paragraph",
+        text: "His body was telling me something else.",
+      },
+      {
+        type: "paragraph",
+        text: "He was squirming in his chair. His breath was shallow and high in his chest. There was a tremendous amount of movement and tension underneath the surface.",
+      },
+      {
+        type: "paragraph",
+        text: "So rather than immediately talking through whatever was on his mind, I invited him to slow down.",
+      },
+      {
+        type: "paragraph",
+        text: "Slow and low. Back into the body.",
+      },
+      {
+        type: "paragraph",
+        text: "At first, he continued to report that he felt calm.",
+      },
+      {
+        type: "paragraph",
+        text: "And this is something I encounter often in my work: the mind can be convinced that everything is fine while the body is still carrying the imprint of what has happened.",
+      },
+      {
+        type: "paragraph",
+        text: "We began working gently with his body—rubbing behind the neck, bringing awareness to his breath, exploring movement around his shoulders and the tension behind his ears. I introduced the “voo” sound I learned through Peter Levine’s somatic trauma work, using vibration and sound as another way of inviting greater awareness and regulation.",
+      },
+      {
+        type: "paragraph",
+        text: "Nothing was forced. We weren’t trying to crack him open. We weren’t trying to make something happen. We were simply listening.",
+      },
+      {
+        type: "paragraph",
+        text: "And slowly, something began to shift.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "The difference between knowing and feeling",
+      },
+      {
+        type: "paragraph",
+        text: "This client had previously told me that when he comes home from work, he is often completely checked out. He sits in front of the television, zones out, and eventually falls asleep.",
+      },
+      {
+        type: "paragraph",
+        text: "He also told me about a period a few weeks earlier when work had become extremely stressful.",
+      },
+      {
+        type: "paragraph",
+        text: "Because sales had increased dramatically under his supervision, the corporate office decided to come in and review their systems. It was a normal process—a way of making sure everything was operating properly and that there was no misconduct or anything out of alignment.",
+      },
+      {
+        type: "paragraph",
+        text: "But for several weeks, his system was under enormous pressure.",
+      },
+      {
+        type: "paragraph",
+        text: "He was worried. He was anticipating what might happen. He was thinking about what could be discovered and what the consequences might be.",
+      },
+      {
+        type: "paragraph",
+        text: "Eventually, he did what he is exceptionally good at doing.",
+      },
+      {
+        type: "paragraph",
+        text: "He used his mind.",
+      },
+      {
+        type: "paragraph",
+        text: "He told himself: I know I’ve done a good job. I’m not going to worry about this anymore. If other people’s jobs are on the line, they’ll figure it out.",
+      },
+      {
+        type: "paragraph",
+        text: "And in one sense, this was an incredibly healthy response.",
+      },
+      {
+        type: "paragraph",
+        text: "He was able to put things into perspective. He was able to stop ruminating. He was able to focus on what was actually within his control.",
+      },
+      {
+        type: "paragraph",
+        text: "There is enormous value in that capacity.",
+      },
+      {
+        type: "paragraph",
+        text: "But there was another piece.",
+      },
+      {
+        type: "paragraph",
+        text: "His mind had let go. His body hadn’t necessarily caught up.",
+      },
+      {
+        type: "paragraph",
+        text: "The stress response that had been activated for those weeks did not simply disappear because he had reached a rational conclusion.",
+      },
+      {
+        type: "paragraph",
+        text: "This is one of the places where I think our culture can become overly invested in the power of the mind.",
+      },
+      {
+        type: "paragraph",
+        text: "We are taught to push through. To compartmentalize. To stay focused. To solve the problem. To get back to work.",
+      },
+      {
+        type: "paragraph",
+        text: "And especially for highly capable people, this can become an extraordinary survival strategy.",
+      },
+      {
+        type: "paragraph",
+        text: "It works. Until the body starts telling a different story.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Slowly melting the ice",
+      },
+      {
+        type: "paragraph",
+        text: "As we continued working with his shoulders, neck, breath, and upper body, I began describing what I was seeing.",
+      },
+      {
+        type: "paragraph",
+        text: "There was a quality of holding. A kind of bracing. A body that had been moving through go, go, go, go while simultaneously becoming less able to actually feel what was happening.",
+      },
+      {
+        type: "paragraph",
+        text: "This is one way I understand the freeze response—not simply as being completely still, but as a state in which there can be tremendous internal activation alongside a diminishing capacity to sense and experience what is happening inside.",
+      },
+      {
+        type: "paragraph",
+        text: "The person keeps functioning. They keep performing. They keep making decisions. They keep going to work. They may even say, quite sincerely, “I’m fine.”",
+      },
+      {
+        type: "paragraph",
+        text: "And underneath that, the body may be saying something very different.",
+      },
+      {
+        type: "paragraph",
+        text: "This is why I don’t believe the answer is to force the body open.",
+      },
+      {
+        type: "paragraph",
+        text: "We don’t need to drill through the ice. We don’t need to have a dramatic catharsis. We slowly melt it.",
+      },
+      {
+        type: "paragraph",
+        text: "We create enough safety and enough presence that sensation can begin to return.",
+      },
+      {
+        type: "paragraph",
+        text: "And eventually, something happened.",
+      },
+      {
+        type: "paragraph",
+        text: "He started yawning. Then he yawned again. And again. And again.",
+      },
+      {
+        type: "paragraph",
+        text: "I invited him to stay with it.",
+      },
+      {
+        type: "paragraph",
+        text: "Rather than dismissing the yawns or moving on to the next exercise, we allowed the body to continue doing what it was doing.",
+      },
+      {
+        type: "paragraph",
+        text: "And gradually, there was more space.",
+      },
+      {
+        type: "paragraph",
+        text: "He could feel it. Space was opening in his body.",
+      },
+      {
+        type: "paragraph",
+        text: "And something else became apparent.",
+      },
+      {
+        type: "paragraph",
+        text: "He wasn’t as cheerful as he usually is during our sessions.",
+      },
+      {
+        type: "paragraph",
+        text: "At first, that might seem like a sign that something had gone wrong.",
+      },
+      {
+        type: "paragraph",
+        text: "But I didn’t see it that way.",
+      },
+      {
+        type: "paragraph",
+        text: "I think he was beginning to feel.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Sometimes coming out of freeze doesn’t feel good",
+      },
+      {
+        type: "paragraph",
+        text: "When we begin to come out of a state of chronic holding or disconnection, we don’t necessarily feel immediately euphoric.",
+      },
+      {
+        type: "paragraph",
+        text: "Sometimes what we encounter first is exhaustion. Sometimes sadness. Sometimes agitation. Sometimes the simple realization: Wow. I have been carrying a lot.",
+      },
+      {
+        type: "paragraph",
+        text: "The absence of sensation can feel preferable to sensation when we have been overloaded for a long time.",
+      },
+      {
+        type: "paragraph",
+        text: "So when the body begins to thaw, there can be a period where we actually become more aware of what has been underneath the surface.",
+      },
+      {
+        type: "paragraph",
+        text: "That isn’t necessarily a regression. It may be increased contact.",
+      },
+      {
+        type: "paragraph",
+        text: "This is an important distinction in somatic work:",
+      },
+      {
+        type: "paragraph",
+        text: "The goal isn’t always to feel better. The goal is to become more present to what is actually happening.",
+      },
+      {
+        type: "paragraph",
+        text: "And from that place, something new becomes possible.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "The limits of “mind over matter”",
+      },
+      {
+        type: "paragraph",
+        text: "I told him how much I respect his ability to use his mind.",
+      },
+      {
+        type: "paragraph",
+        text: "He has navigated many difficult circumstances in his life by doing exactly this: Okay. Here’s the situation. Here’s what needs to happen. I’m going to focus. I’m going to make it happen.",
+      },
+      {
+        type: "paragraph",
+        text: "There is tremendous strength in that.",
+      },
+      {
+        type: "paragraph",
+        text: "I don’t want to take that capacity away from him.",
+      },
+      {
+        type: "paragraph",
+        text: "But perhaps the next evolution isn’t abandoning the masculine capacity to focus, decide, and act.",
+      },
+      {
+        type: "paragraph",
+        text: "Perhaps it is bringing that capacity into relationship with the body.",
+      },
+      {
+        type: "paragraph",
+        text: "The mind can say, “We’re safe now.” But the body may need time to discover that for itself.",
+      },
+      {
+        type: "paragraph",
+        text: "The mind can say, “I’ve let it go.” And the body may still be carrying the muscular pattern, the shallow breath, the bracing, the vigilance.",
+      },
+      {
+        type: "paragraph",
+        text: "The mind can understand something in an instant. The body often learns through repetition, sensation, movement, relationship, and time.",
+      },
+      {
+        type: "paragraph",
+        text: "This is why embodiment is not simply another way of thinking about ourselves. It is a different kind of knowing.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "What he left with",
+      },
+      {
+        type: "paragraph",
+        text: "He didn’t leave the session saying, “I feel amazing!”",
+      },
+      {
+        type: "paragraph",
+        text: "Instead, he left with something I believe may be much more valuable.",
+      },
+      {
+        type: "paragraph",
+        text: "He had experienced, firsthand, the difference between thinking he was relaxed and actually sensing what was happening in his body.",
+      },
+      {
+        type: "paragraph",
+        text: "He had felt the tension. He had felt the exhaustion. He had experienced the yawning and the opening. He had felt space.",
+      },
+      {
+        type: "paragraph",
+        text: "And he left with a deeper understanding of how his body may hold onto stress long after his mind has decided that the situation is over.",
+      },
+      {
+        type: "paragraph",
+        text: "Most importantly, he left with several simple movements he could practice throughout the week to continue creating movement and space in his body.",
+      },
+      {
+        type: "paragraph",
+        text: "This is what I mean when I talk about embodiment.",
+      },
+      {
+        type: "paragraph",
+        text: "It isn’t about becoming more spiritual. It isn’t about having a dramatic release. It isn’t about forcing ourselves into some ideal state of peace.",
+      },
+      {
+        type: "paragraph",
+        text: "It is learning to listen closely enough that we can recognize what is actually happening beneath the story.",
+      },
+      {
+        type: "paragraph",
+        text: "Because sometimes the mind has already moved on. But the body is still waiting for us to come back and meet it.",
+      },
+      {
+        type: "paragraph",
+        text: "And this matters far beyond simply feeling more relaxed. When chronic stress and muscular tension become habitual, they can influence the way the body regulates circulation, lymphatic flow, digestion, sleep, immune function, hormones, and the functioning of our organs. Over time, persistent stress physiology can contribute to inflammation and other patterns associated with chronic health conditions. This is why coming back into relationship with the body is not a luxury or an indulgence—it is part of reclaiming our capacity for restoration. When we begin to notice what we have been holding, create movement where there has been bracing, and allow the body to complete what it has been unable to complete, we begin creating the conditions for the body to regulate, repair, and restore. Embodiment is not simply about feeling more present. It is about coming home to the living intelligence of the body—and giving it the opportunity to do what it was designed to do: move, adapt, release, and heal.",
+      },
+    ],
+  },
 ];
 
 export function getPostBySlug(slug: string): BlogPost | undefined {
