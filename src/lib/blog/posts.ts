@@ -812,9 +812,18 @@ export function getAllPostSlugs(): string[] {
   return blogPosts.map((p) => p.slug);
 }
 
-/** Sorted newest first */
+/**
+ * All published posts, newest first.
+ * Source of truth for `/blog` index, homepage teasers, and sitemap.
+ * Do not slice here — callers may limit for teasers only.
+ */
 export function getPostsSorted(): BlogPost[] {
   return [...blogPosts].sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
+}
+
+/** Alias: every post in `blogPosts` is published and must appear on `/blog`. */
+export function getPublishedPosts(): BlogPost[] {
+  return getPostsSorted();
 }

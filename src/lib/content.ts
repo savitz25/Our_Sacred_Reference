@@ -234,7 +234,12 @@ export const offerings = [
 ];
 
 /** Blog list + full articles live in `@/lib/blog/posts` */
-export { blogPosts, getPostsSorted, getPostBySlug } from "@/lib/blog/posts";
+export {
+  blogPosts,
+  getPostsSorted,
+  getPublishedPosts,
+  getPostBySlug,
+} from "@/lib/blog/posts";
 
 
 export const videoCategories = [

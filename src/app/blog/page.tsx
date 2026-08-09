@@ -1,16 +1,16 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { ArrowRight } from "lucide-react";
 import { Section, SectionHeader } from "@/components/ui/Section";
-import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
-import { getPostsSorted } from "@/lib/blog/posts";
+import { getPublishedPosts } from "@/lib/blog/posts";
+import { BlogPostCard } from "@/components/blog/BlogPostCard";
 import { CTABanner } from "@/components/home/CTABanner";
 import { buildPageMetadata } from "@/lib/seo/site";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { Breadcrumbs } from "@/components/seo/Breadcrumbs";
 import { RelatedPaths } from "@/components/seo/RelatedPaths";
 import { getSiteUrl } from "@/lib/seo/site";
+
+/** Rebuild index when content deploys so every post is listed. */
+export const revalidate = 60;
 
 export const metadata: Metadata = buildPageMetadata({
   title: "Blog — Felt Sense, Somatic Essays & Path of Remembering",
@@ -28,8 +28,10 @@ export const metadata: Metadata = buildPageMetadata({
 });
 
 export default function BlogPage() {
-  const posts = getPostsSorted();
+  // Full published set — never slice on the index
+  const posts = getPublishedPosts();
   const site = getSiteUrl();
+  const essayCount = posts.length;
 
   const blogListJsonLd = {
     "@context": "https://schema.org",
@@ -74,6 +76,11 @@ export default function BlogPage() {
             Reflections from Michele Castro on the felt sense, somatic
             embodiment, feminine wisdom, and the Path of Remembering.
           </p>
+          {essayCount > 0 && (
+            <p className="mt-4 text-sm text-cream/65 tracking-wide">
+              {essayCount} {essayCount === 1 ? "essay" : "essays"} · newest first
+            </p>
+          )}
         </div>
       </section>
 
@@ -84,45 +91,20 @@ export default function BlogPage() {
           description="Full articles from the heart of the work — raw, reverent, and rooted in the body."
         />
 
-        <div className="grid gap-8 max-w-3xl mx-auto">
-          {posts.map((post) => (
-            <article key={post.slug} id={post.slug} className="scroll-mt-24">
-              <Link href={`/blog/${post.slug}`} className="group block">
-                <Card hover padding="lg">
-                  <div className="flex flex-wrap items-center gap-3 mb-3">
-                    <Badge variant="teal">{post.category}</Badge>
-                    <span className="text-xs text-muted">
-                      {new Date(post.date).toLocaleDateString("en-US", {
-                        month: "long",
-                        day: "numeric",
-                        year: "numeric",
-                      })}{" "}
-                      · {post.readTime} read · {post.author}
-                    </span>
-                  </div>
-                  <h2 className="font-serif text-2xl sm:text-3xl text-forest mb-2 group-hover:text-teal transition-colors">
-                    {post.title}
-                  </h2>
-                  {post.subtitle && (
-                    <p className="font-serif text-lg text-ink-soft italic mb-3">
-                      {post.subtitle}
-                    </p>
-                  )}
-                  <p className="text-ink-soft leading-relaxed text-lg">
-                    {post.excerpt}
-                  </p>
-                  <span className="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-teal">
-                    Read full article
-                    <ArrowRight
-                      className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
-                      aria-hidden
-                    />
-                  </span>
-                </Card>
-              </Link>
-            </article>
-          ))}
-        </div>
+        {essayCount === 0 ? (
+          <p className="text-center text-ink-soft">
+            New essays will appear here soon.
+          </p>
+        ) : (
+          <div
+            className="grid gap-6 sm:gap-8 md:grid-cols-2 max-w-5xl mx-auto"
+            data-blog-post-count={essayCount}
+          >
+            {posts.map((post) => (
+              <BlogPostCard key={post.slug} post={post} variant="index" />
+            ))}
+          </div>
+        )}
       </Section>
 
       <Section className="bg-cream-dark/30" narrow>

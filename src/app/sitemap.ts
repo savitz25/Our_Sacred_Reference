@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { getPostsSorted } from "@/lib/blog/posts";
+import { getPublishedPosts } from "@/lib/blog/posts";
 import { PRODUCTION_SITE_URL } from "@/lib/seo/site";
 
 type Freq = MetadataRoute.Sitemap[number]["changeFrequency"];
@@ -36,7 +36,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: r.priority,
   }));
 
-  const postEntries: MetadataRoute.Sitemap = getPostsSorted().map((post) => ({
+  const postEntries: MetadataRoute.Sitemap = getPublishedPosts().map((post) => ({
     url: `${base}/blog/${post.slug}`,
     lastModified: new Date(post.date),
     changeFrequency: "monthly" as const,

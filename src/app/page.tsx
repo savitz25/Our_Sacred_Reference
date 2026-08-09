@@ -8,16 +8,16 @@ import { FaqSection } from "@/components/home/FaqSection";
 import { DisclaimerBanner } from "@/components/legal/DisclaimerBanner";
 import { Section, SectionHeader } from "@/components/ui/Section";
 import { Button } from "@/components/ui/Button";
-import { offerings } from "@/lib/content";
-import { getPostsSorted } from "@/lib/blog/posts";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { offerings } from "@/lib/content";
+import { getPublishedPosts } from "@/lib/blog/posts";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { homeFaqs, homeGraphJsonLd } from "@/lib/seo/json-ld";
 import { buildPageMetadata, SEO } from "@/lib/seo/site";
 import { RelatedPaths } from "@/components/seo/RelatedPaths";
+import { BlogPostCard } from "@/components/blog/BlogPostCard";
 
 export const metadata: Metadata = buildPageMetadata({
   title: SEO.defaultTitle,
@@ -26,7 +26,8 @@ export const metadata: Metadata = buildPageMetadata({
 });
 
 export default function HomePage() {
-  const blogPosts = getPostsSorted().slice(0, 3);
+  // Latest published essays (full set lives on /blog)
+  const blogPosts = getPublishedPosts().slice(0, 3);
 
   return (
     <>
@@ -105,37 +106,12 @@ export default function HomePage() {
         />
         <div className="grid gap-6 md:grid-cols-3">
           {blogPosts.map((post) => (
-            <Link
-              key={post.slug}
-              href={`/blog/${post.slug}`}
-              className="group"
-            >
-              <Card hover className="h-full">
-                <Badge variant="teal" className="mb-3">
-                  {post.category}
-                </Badge>
-                <h3 className="font-serif text-xl text-forest group-hover:text-teal transition-colors mb-2">
-                  {post.title}
-                </h3>
-                {post.subtitle && (
-                  <p className="text-sm text-ink-soft italic mb-2 line-clamp-2">
-                    {post.subtitle}
-                  </p>
-                )}
-                <p className="text-sm text-ink-soft leading-relaxed mb-4">
-                  {post.excerpt}
-                </p>
-                <span className="inline-flex items-center gap-1 text-sm text-teal font-medium">
-                  Read more
-                  <ArrowRight className="h-3.5 w-3.5" aria-hidden />
-                </span>
-              </Card>
-            </Link>
+            <BlogPostCard key={post.slug} post={post} variant="teaser" />
           ))}
         </div>
         <div className="mt-10 text-center">
           <Button href="/blog" variant="outline">
-            All resources
+            All essays
           </Button>
         </div>
       </Section>
