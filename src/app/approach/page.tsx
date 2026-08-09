@@ -53,7 +53,7 @@ const extendedNarrative: Record<string, string> = {
   "mytho-shamanic":
     "Myths, dreams, symbols, and archetypes are not only maps — they are living presences. Mytho-shamanic practice invites them as guides that move through body and imagination together: a return to the wisdom of your soul.",
   "depth-process":
-    "The unconscious speaks in image and pattern. Through shadow work, active imagination, and archetypal awareness, we enter dialogue with what wants to be known — including the Dark Night of Soul and the Dark Night of the Ego as Initiation rather than failure.",
+    "The unconscious speaks in image, pattern, and through the sensations in the body. Through shadow work, active imagination, archetypal awareness, and working with sensation, we enter a dialogue with what is ready to be revealed — including the Dark Night of Soul and the Dark Night of the Ego as Initiation rather than failure.",
   "divine-mother":
     "Embodying the Divine Mother is an inner cultivation of nourishment, protection, and unconditional presence — a sacred reference point that steadies the journey and repairs a disrupted connection with the feminine sacred.",
   "embodied-spirituality":

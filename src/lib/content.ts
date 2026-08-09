@@ -115,7 +115,7 @@ export const approachPillars = [
     id: "depth-process",
     title: "Depth process work",
     description:
-      "Engaging the unconscious through image, shadow, active imagination, and archetypal patterns — a descent that becomes Initiation.",
+      "The unconscious speaks in image, pattern, and through the sensations in the body. Through shadow work, active imagination, archetypal awareness, and working with sensation, we enter a dialogue with what is ready to be revealed.",
     icon: "moon",
     color: "forest",
   },
