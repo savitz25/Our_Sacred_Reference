@@ -84,7 +84,7 @@ export const mockVideos: MockVideo[] = [
     title: "Shadow & Active Imagination",
     date: "2026-06-13",
     duration: "75 min",
-    categories: ["Jungian Depth", "Felt Sense"],
+    categories: ["Depth process work", "Felt Sense"],
     thumbnail:
       "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=800&q=80",
   },

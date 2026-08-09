@@ -56,7 +56,7 @@ export default function TermsPage() {
         <LegalH3>What this means in practice</LegalH3>
         <LegalList
           items={[
-            "Sessions may include somatic practice, felt sense, attachment-informed coaching, Jungian depth psychology themes, mythology, and mytho-shamanic wisdom as educational and exploratory frameworks.",
+            "Sessions may include somatic practice, felt sense, attachment-informed coaching, depth process work, mythology, and mytho-shamanic wisdom as educational and exploratory frameworks.",
             "Michele and Sacred Reference do not diagnose, treat, or cure medical or psychiatric conditions, and do not prescribe medication.",
             "You are solely responsible for seeking licensed medical, psychiatric, or psychological care when needed.",
             "If you are in crisis or may harm yourself or others, contact emergency services or a crisis hotline immediately — do not rely on Sacred Reference sessions for crisis care.",

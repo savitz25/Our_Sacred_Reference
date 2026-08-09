@@ -62,7 +62,7 @@ export function personJsonLd(): JsonLd {
     jobTitle: "Mytho-Shamanic Somatic Practitioner",
     worksFor: { "@id": `${site}/#organization` },
     description:
-      "Michele Castro offers online mytho-shamanic somatic sessions integrating felt sense, nervous system work, Jungian depth psychology, Divine Mother devotion, and a Path of Remembering.",
+      "Michele Castro offers online mytho-shamanic somatic sessions integrating felt sense, nervous system work, depth process work, Divine Mother devotion, and a Path of Remembering.",
     knowsAbout: [
       "Somatic healing",
       "Felt sense",
@@ -203,7 +203,7 @@ export function approachItemListJsonLd(): JsonLd {
 }
 
 function approachHeartSafe() {
-  return "Seven pillars of mytho-shamanic somatic healing: felt sense, somatic healing, inner child, mytho-shamanic practice, Jungian depth, Divine Mother, embodied spirituality.";
+  return "Seven pillars of mytho-shamanic somatic healing: felt sense, somatic healing, inner child, mytho-shamanic practice, depth process work, Divine Mother, embodied spirituality.";
 }
 
 /** Home page graph: Organization + WebSite + FAQ */
@@ -225,7 +225,7 @@ export const homeFaqs: { question: string; answer: string }[] = [
   {
     question: "What is mytho-shamanic somatic healing?",
     answer:
-      "Mytho-shamanic somatic healing weaves somatic practice, the felt sense, nervous system capacity, Jungian depth psychology, mythology, and mytho-shamanic wisdom so myth becomes a lived, embodied experience — a Path of Remembering rather than a set of techniques alone.",
+      "Mytho-shamanic somatic healing weaves somatic practice, the felt sense, nervous system capacity, depth process work, mythology, and mytho-shamanic wisdom so myth becomes a lived, embodied experience — a Path of Remembering rather than a set of techniques alone.",
   },
   {
     question: "What does “symptoms become soul-language” mean?",

@@ -27,7 +27,7 @@ Supabase: `https://mbboakpdxgquntlohlix.supabase.co`
 | Security headers, sitemap, robots, health check | ✅ |
 | Practitioner **Admin** (`/admin`) — appointments & recordings | ✅ |
 | Admin auth/role hardening for production | ✅ |
-| Stripe payments | ⏳ future |
+| Stripe payments | ⏳ config ready (`src/lib/payments/stripe-config.ts`); Checkout not wired |
 | Full HIPAA / BAAs | ⏳ legal + vendor BAAs |
 
 ### Legal pages
@@ -252,7 +252,7 @@ Until the domain is verified, Resend may only allow sends to your account email;
 
 ### H. Post-launch (not blockers for soft launch)
 
-- [ ] Stripe for paid packages  
+- [ ] Stripe Checkout for paid packages (card only; no PayPal/Venmo; fees absorbed — see `src/lib/payments/stripe-config.ts`)  
 - [ ] Vendor BAAs if treating as regulated PHI (current positioning is coaching, not HIPAA therapy)  
 - [ ] Practitioner admin UI  
 - [ ] Self-hosted FFmpeg worker for silence trim in production  
@@ -342,9 +342,20 @@ Templates: forest/gold branded HTML in `src/lib/email/templates.ts`.
 
 ## Remaining product TODOs
 
-- Stripe paid sessions  
+- Stripe paid sessions (use `checkoutSessionPaymentParams()` — cards only; ACH optional; never PayPal/Venmo in Stripe; no fee passthrough)  
 - HIPAA/BAA path only if clinical positioning changes  
 - Practitioner multi-client admin UI  
+
+### Stripe payment policy (when enabled)
+
+| Rule | Detail |
+|------|--------|
+| Processor | Stripe only for site checkout |
+| Allowed methods | **Card** (international cards OK); **ACH** only if explicitly enabled |
+| Disabled | PayPal, Venmo, BNPL, Cash App, etc. in Checkout / Payment Element |
+| Manual PayPal | Michele may send a **direct PayPal link** outside Stripe (avoids double fees) |
+| Fees | Practice absorbs Stripe fees by default — do not auto-surcharge clients |
+| Config | `src/lib/payments/stripe-config.ts` |
 
 ---
 

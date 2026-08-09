@@ -21,14 +21,14 @@ import { RelatedPaths } from "@/components/seo/RelatedPaths";
 export const metadata: Metadata = buildPageMetadata({
   title: "Mytho-Shamanic Approach — Seven Pillars of Embodied Healing",
   description:
-    "Sacred Reference approach: felt sense, somatic healing, inner child, mytho-shamanic practice, Jungian depth, Divine Mother, and embodied spirituality. A Path of Remembering where symptoms become soul-language.",
+    "Sacred Reference approach: felt sense, somatic healing, inner child, mytho-shamanic practice, depth process work, Divine Mother, and embodied spirituality. A Path of Remembering where symptoms become soul-language.",
   path: "/approach",
   keywords: [
     "mytho-shamanic approach",
     "felt sense somatic healing",
     "seven pillars embodied healing",
     "Divine Mother spirituality",
-    "Jungian somatic coaching",
+    "depth process work coaching",
     "inner child integration felt sense",
   ],
 });
@@ -52,7 +52,7 @@ const extendedNarrative: Record<string, string> = {
     "Younger parts of us often hold unfinished developmental needs and experiences that have been exiled. Meeting them with unconditional love, compassion, and curiosity allows those experiences to complete and reorganize within a larger Self.",
   "mytho-shamanic":
     "Myths, dreams, symbols, and archetypes are not only maps — they are living presences. Mytho-shamanic practice invites them as guides that move through body and imagination together: a return to the wisdom of your soul.",
-  jungian:
+  "depth-process":
     "The unconscious speaks in image and pattern. Through shadow work, active imagination, and archetypal awareness, we enter dialogue with what wants to be known — including the Dark Night of Soul and the Dark Night of the Ego as Initiation rather than failure.",
   "divine-mother":
     "Embodying the Divine Mother is an inner cultivation of nourishment, protection, and unconditional presence — a sacred reference point that steadies the journey and repairs a disrupted connection with the feminine sacred.",

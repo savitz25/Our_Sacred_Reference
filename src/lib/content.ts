@@ -72,7 +72,7 @@ export const mission = {
   ],
   /** Secondary mission language preserved for about / depth pages */
   practiceParagraphs: [
-    "Sacred Reference offers an embodied path of healing that weaves together somatic practice, the felt sense, attachment science, Jungian depth psychology, mythology, and mytho-shamanic wisdom.",
+    "Sacred Reference offers an embodied path of healing that weaves together somatic practice, the felt sense, attachment science, depth process work, mythology, and mytho-shamanic wisdom.",
     "Our work invites people to slow down and listen to the intelligence of the body. Through the language of sensation, emotion, image, symbol, and story, we learn to reconnect with the deeper currents of our own psyche and soul.",
     "Rather than striving to transcend the body, we cultivate the capacity to inhabit it. As we develop the ability to stay present with our lived experience, the nervous system becomes a vessel capable of integrating trauma, awakening creativity, deepening relationship, and supporting authentic spiritual transformation.",
   ],
@@ -112,8 +112,8 @@ export const approachPillars = [
     color: "gold",
   },
   {
-    id: "jungian",
-    title: "Jungian Depth Psychology",
+    id: "depth-process",
+    title: "Depth process work",
     description:
       "Engaging the unconscious through image, shadow, active imagination, and archetypal patterns — a descent that becomes Initiation.",
     icon: "moon",
@@ -243,7 +243,7 @@ export const videoCategories = [
   "Somatic Healing",
   "Inner Child Integration",
   "Mytho-Shamanic Journey",
-  "Jungian Depth",
+  "Depth process work",
   "Divine Mother",
   "Embodied Spirituality",
 ] as const;

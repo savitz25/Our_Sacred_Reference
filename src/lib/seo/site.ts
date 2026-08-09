@@ -32,7 +32,7 @@ export const SEO = {
     "Divine Feminine embodiment",
     "Divine Mother spirituality",
     "Dark Goddess work",
-    "Jungian depth psychology coaching",
+    "depth process work coaching",
     "embodied spirituality",
     "feminine wisdom healing",
     "nervous system regulation coaching",
