@@ -59,7 +59,7 @@ export async function POST(request: Request) {
     let event;
     try {
       event = await receiver.receive(body, authHeader);
-    } catch (err) {
+    } catch {
       // Retry without stripping Bearer in case verifier expects full header
       try {
         event = await receiver.receive(body, rawAuth);

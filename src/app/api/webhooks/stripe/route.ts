@@ -279,7 +279,7 @@ async function handleSetupSucceeded(si: Stripe.SetupIntent) {
   }
 
   const customerId = customerIdFrom(si.customer);
-  let userId = await resolveUserId({
+  const userId = await resolveUserId({
     metadataUserId: si.metadata?.user_id || null,
     customerId,
   });
