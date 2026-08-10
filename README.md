@@ -442,6 +442,23 @@ Use **test keys** first. Card: `4242 4242 4242 4242`, any future expiry, any CVC
 | `STRIPE_SESSION_AMOUNT_CENTS=0` | Auto post-session charge skipped (`no_amount_configured`) |
 | No card on file | Post-session charge fails with clear portal/admin error |
 
+#### Debugging “Invalid API Key provided: pk_live_…”
+
+1. **Re-check Vercel env values** (no quotes, no trailing spaces/newlines):
+   - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` must start with `pk_live_` or `pk_test_`
+   - `STRIPE_SECRET_KEY` must start with `sk_live_` or `sk_test_`
+   - **Both must be the same mode** (both live or both test)
+2. **Do not wrap keys in quotes** when pasting into the Vercel UI
+3. **Redeploy** after any env change (`NEXT_PUBLIC_*` is also inlined at build time)
+4. Open `/api/health` and inspect `stripeKeys`:
+   - `publishable.length` should be ~100+ (much shorter ⇒ truncated)
+   - `publishable.looksValid` / `secret.looksValid` should be `true`
+   - `modeMatch` must be `true`
+5. Open `/api/stripe/config` — should return `ok: true` and a full `publishableKey`
+6. Browser console logs `[stripe-browser] pk … len=… valid=…` (prefix/length only)
+
+The app sanitizes keys (trim, strip quotes/newlines) and loads Stripe.js via `/api/stripe/config` so truncated/quoted env values fail with a clean support message instead of exposing key fragments.
+
 ---
 
 ## Phase history

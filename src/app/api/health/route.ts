@@ -28,8 +28,33 @@ export async function GET() {
         process.env.SUPABASE_S3_ACCESS_KEY && process.env.SUPABASE_S3_SECRET_KEY
       ),
       resend: Boolean(process.env.RESEND_API_KEY),
+      /** Both keys present, shape-valid, and same mode (test/live) */
       stripe: stripe.ready,
       stripeWebhook: stripe.webhookReady,
+    },
+    /**
+     * Stripe key shape diagnostics only (no full keys).
+     * Use when debugging "Invalid API Key provided: pk_live_..."
+     */
+    stripeKeys: {
+      mode: stripe.mode,
+      modeMatch: stripe.modeMatch,
+      publishable: {
+        present: stripe.publishable.present,
+        prefix: stripe.publishable.prefix,
+        length: stripe.publishable.length,
+        mode: stripe.publishable.mode,
+        looksValid: stripe.publishable.looksValid,
+        issues: stripe.publishable.issues,
+      },
+      secret: {
+        present: stripe.secret.present,
+        prefix: stripe.secret.prefix,
+        length: stripe.secret.length,
+        mode: stripe.secret.mode,
+        looksValid: stripe.secret.looksValid,
+        issues: stripe.secret.issues,
+      },
     },
   };
 

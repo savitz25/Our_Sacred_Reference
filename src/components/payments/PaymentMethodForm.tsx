@@ -7,7 +7,7 @@ import {
   useElements,
   useStripe,
 } from "@stripe/react-stripe-js";
-import { loadStripe, type StripeElementsOptions } from "@stripe/stripe-js";
+import type { Stripe, StripeElementsOptions } from "@stripe/stripe-js";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import {
@@ -15,11 +15,10 @@ import {
   getPaymentMethodSummaryAction,
   saveDefaultPaymentMethodAction,
 } from "@/app/actions/payments";
-
-const publishableKey =
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim() || "";
-
-const stripePromise = publishableKey ? loadStripe(publishableKey) : null;
+import {
+  friendlyBrowserStripeError,
+  loadStripeBrowser,
+} from "@/lib/payments/stripe-browser";
 
 /** Forest / gold / cream Payment Element appearance */
 const elementsAppearance: StripeElementsOptions["appearance"] = {
@@ -51,6 +50,8 @@ const elementsAppearance: StripeElementsOptions["appearance"] = {
 export function PaymentMethodSection() {
   const [loading, setLoading] = useState(true);
   const [stripeReady, setStripeReady] = useState(false);
+  const [stripe, setStripe] = useState<Stripe | null>(null);
+  const [configError, setConfigError] = useState<string | null>(null);
   const [hasCard, setHasCard] = useState(false);
   const [brand, setBrand] = useState<string | null>(null);
   const [last4, setLast4] = useState<string | null>(null);
@@ -64,7 +65,11 @@ export function PaymentMethodSection() {
   const refreshSummary = useCallback(async () => {
     const summary = await getPaymentMethodSummaryAction();
     if (!summary.success) {
-      setError(summary.error ?? "Could not load payment method");
+      setError(
+        friendlyBrowserStripeError(
+          summary.error ?? "Could not load payment method"
+        )
+      );
       setLoading(false);
       return;
     }
@@ -78,16 +83,47 @@ export function PaymentMethodSection() {
   }, []);
 
   useEffect(() => {
-    void refreshSummary();
+    let cancelled = false;
+    (async () => {
+      const { stripe: s, error: loadErr } = await loadStripeBrowser();
+      if (cancelled) return;
+      if (loadErr || !s) {
+        setConfigError(
+          loadErr ||
+            "Stripe is not configured correctly. Please contact support."
+        );
+        setStripe(null);
+      } else {
+        setStripe(s);
+        setConfigError(null);
+      }
+      await refreshSummary();
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [refreshSummary]);
 
   async function startAddCard() {
     setError(null);
     setMessage(null);
+
+    if (!stripe) {
+      setError(
+        configError ||
+          "Stripe is not configured correctly. Please contact support."
+      );
+      return;
+    }
+
     setShowForm(true);
     const result = await createSetupIntentAction();
     if (!result.success || !result.clientSecret) {
-      setError(result.error ?? "Could not start card setup");
+      setError(
+        friendlyBrowserStripeError(
+          result.error ?? "Could not start card setup"
+        )
+      );
       setShowForm(false);
       return;
     }
@@ -103,15 +139,13 @@ export function PaymentMethodSection() {
     );
   }
 
-  if (!stripeReady || !stripePromise) {
+  if (!stripeReady || !stripe || configError) {
     return (
       <Card>
         <h2 className="font-serif text-xl text-forest mb-2">Payment method</h2>
         <p className="text-sm text-ink-soft leading-relaxed">
-          Secure card payments will appear here once Stripe is configured. You
-          can still book free discovery sessions. For other payment options
-          (including a direct PayPal link when Michele sends one), she will
-          contact you personally.
+          {configError ||
+            "Secure card payments will appear here once Stripe is configured correctly. You can still book free discovery sessions. For other payment options (including a direct PayPal link when Michele sends one), she will contact you personally."}
         </p>
       </Card>
     );
@@ -151,11 +185,10 @@ export function PaymentMethodSection() {
       {showForm && clientSecret && (
         <div className="mt-4">
           <Elements
-            stripe={stripePromise}
+            stripe={stripe}
             options={{
               clientSecret,
               appearance: elementsAppearance,
-              // Card-only — do not surface wallets that stack fees
               paymentMethodCreation: "manual",
             }}
           >
@@ -163,7 +196,11 @@ export function PaymentMethodSection() {
               onSuccess={async (pmId) => {
                 const saved = await saveDefaultPaymentMethodAction(pmId);
                 if (!saved.success) {
-                  setError(saved.error ?? "Could not save card");
+                  setError(
+                    friendlyBrowserStripeError(
+                      saved.error ?? "Could not save card"
+                    )
+                  );
                   return;
                 }
                 setMessage("Your card has been saved securely.");
@@ -175,7 +212,7 @@ export function PaymentMethodSection() {
                 setShowForm(false);
                 setClientSecret(null);
               }}
-              onError={(msg) => setError(msg)}
+              onError={(msg) => setError(friendlyBrowserStripeError(msg))}
             />
           </Elements>
         </div>
@@ -215,7 +252,6 @@ function SetupForm({
   const paymentElementOptions = useMemo(
     () => ({
       layout: "tabs" as const,
-      // wallets off — cards only
       wallets: {
         applePay: "never" as const,
         googlePay: "never" as const,
@@ -242,7 +278,6 @@ function SetupForm({
       elements,
       redirect: "if_required",
       confirmParams: {
-        // Card-only; no return_url needed with if_required unless 3DS
         return_url:
           typeof window !== "undefined"
             ? `${window.location.origin}/portal/profile?card=saved`

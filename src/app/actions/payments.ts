@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import {
+  ensureStripeKeyDiagnosticsLogged,
   friendlyStripeError,
   isStripeConfigured,
 } from "@/lib/payments/stripe";
@@ -24,10 +25,11 @@ export async function createSetupIntentAction(): Promise<{
   error?: string;
 }> {
   try {
+    ensureStripeKeyDiagnosticsLogged();
     if (!isStripeConfigured()) {
       return {
         success: false,
-        error: "Card payments are not configured yet. Please try again later.",
+        error: "Stripe is not configured correctly. Please contact support.",
       };
     }
     const user = await requireUser("/portal/profile");

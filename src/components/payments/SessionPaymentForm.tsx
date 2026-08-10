@@ -1,20 +1,20 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Elements,
   PaymentElement,
   useElements,
   useStripe,
 } from "@stripe/react-stripe-js";
-import { loadStripe, type StripeElementsOptions } from "@stripe/stripe-js";
+import type { Stripe, StripeElementsOptions } from "@stripe/stripe-js";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { createSessionPaymentIntentAction } from "@/app/actions/payments";
-
-const publishableKey =
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim() || "";
-const stripePromise = publishableKey ? loadStripe(publishableKey) : null;
+import {
+  friendlyBrowserStripeError,
+  loadStripeBrowser,
+} from "@/lib/payments/stripe-browser";
 
 const elementsAppearance: StripeElementsOptions["appearance"] = {
   theme: "stripe",
@@ -38,26 +38,67 @@ export function SessionPaymentForm({
   sessionId: string;
   onPaid?: () => void;
 }) {
+  const [stripe, setStripe] = useState<Stripe | null>(null);
+  const [configError, setConfigError] = useState<string | null>(null);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [amountLabel, setAmountLabel] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { stripe: s, error: loadErr } = await loadStripeBrowser();
+      if (cancelled) return;
+      if (loadErr || !s) {
+        setConfigError(
+          loadErr ||
+            "Stripe is not configured correctly. Please contact support."
+        );
+        setStripe(null);
+      } else {
+        setStripe(s);
+        setConfigError(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   async function startPayment() {
     setError(null);
+    if (!stripe) {
+      setError(
+        configError ||
+          "Stripe is not configured correctly. Please contact support."
+      );
+      return;
+    }
     setLoading(true);
     const result = await createSessionPaymentIntentAction({ sessionId });
     setLoading(false);
     if (!result.success || !result.clientSecret) {
-      setError(result.error ?? "Could not start payment");
+      setError(
+        friendlyBrowserStripeError(result.error ?? "Could not start payment")
+      );
       return;
     }
     setClientSecret(result.clientSecret);
     setAmountLabel(result.amountLabel ?? null);
   }
 
-  if (!stripePromise) {
+  if (configError && !stripe) {
+    return (
+      <Card>
+        <h3 className="font-serif text-lg text-forest mb-2">Pay for this session</h3>
+        <p className="text-sm text-ink-soft">{configError}</p>
+      </Card>
+    );
+  }
+
+  if (!stripe) {
     return null;
   }
 
@@ -97,7 +138,7 @@ export function SessionPaymentForm({
             </p>
           )}
           <Elements
-            stripe={stripePromise}
+            stripe={stripe}
             options={{ clientSecret, appearance: elementsAppearance }}
           >
             <PayForm
@@ -105,7 +146,7 @@ export function SessionPaymentForm({
                 setDone(true);
                 onPaid?.();
               }}
-              onError={setError}
+              onError={(msg) => setError(friendlyBrowserStripeError(msg))}
             />
           </Elements>
         </>
