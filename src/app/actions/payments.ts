@@ -2,7 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
-import { isStripeConfigured } from "@/lib/payments/stripe";
+import {
+  friendlyStripeError,
+  isStripeConfigured,
+} from "@/lib/payments/stripe";
 import {
   createBookingPaymentIntent,
   createSetupIntentForUser,
@@ -34,7 +37,7 @@ export async function createSetupIntentAction(): Promise<{
     console.error("[payments] createSetupIntentAction", e);
     return {
       success: false,
-      error: e instanceof Error ? e.message : "Could not start card setup",
+      error: friendlyStripeError(e),
     };
   }
 }
@@ -54,7 +57,7 @@ export async function saveDefaultPaymentMethodAction(
     console.error("[payments] saveDefaultPaymentMethodAction", e);
     return {
       success: false,
-      error: e instanceof Error ? e.message : "Could not save card",
+      error: friendlyStripeError(e),
     };
   }
 }
@@ -89,7 +92,7 @@ export async function getPaymentMethodSummaryAction(): Promise<{
     console.error("[payments] getPaymentMethodSummaryAction", e);
     return {
       success: false,
-      error: e instanceof Error ? e.message : "Could not load payment method",
+      error: friendlyStripeError(e),
     };
   }
 }
@@ -163,7 +166,7 @@ export async function createSessionPaymentIntentAction(input: {
     console.error("[payments] createSessionPaymentIntentAction", e);
     return {
       success: false,
-      error: e instanceof Error ? e.message : "Could not start payment",
+      error: friendlyStripeError(e),
     };
   }
 }
@@ -206,7 +209,7 @@ export async function adminChargeSessionAction(sessionId: string): Promise<{
     console.error("[payments] adminChargeSessionAction", e);
     return {
       success: false,
-      error: e instanceof Error ? e.message : "Charge failed",
+      error: friendlyStripeError(e),
     };
   }
 }

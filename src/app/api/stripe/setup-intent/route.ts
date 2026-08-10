@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { isStripeConfigured } from "@/lib/payments/stripe";
+import {
+  friendlyStripeError,
+  isStripeConfigured,
+} from "@/lib/payments/stripe";
 import { createSetupIntentForUser } from "@/lib/payments/charge";
 
 /**
@@ -10,7 +13,10 @@ export async function POST() {
   try {
     if (!isStripeConfigured()) {
       return NextResponse.json(
-        { error: "Stripe is not configured" },
+        {
+          error:
+            "Card payments are temporarily unavailable. Please try again later.",
+        },
         { status: 503 }
       );
     }
@@ -36,9 +42,7 @@ export async function POST() {
   } catch (e) {
     console.error("[api/stripe/setup-intent]", e);
     return NextResponse.json(
-      {
-        error: e instanceof Error ? e.message : "SetupIntent failed",
-      },
+      { error: friendlyStripeError(e) },
       { status: 500 }
     );
   }

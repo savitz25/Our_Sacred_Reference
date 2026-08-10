@@ -1,5 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getStripe } from "@/lib/payments/stripe";
+import { getStripe, isStripeConfigured } from "@/lib/payments/stripe";
 
 export type ProfileBilling = {
   id: string;
@@ -15,6 +15,11 @@ export type ProfileBilling = {
 export async function getOrCreateStripeCustomer(
   userId: string
 ): Promise<{ customerId: string; profile: ProfileBilling }> {
+  if (!isStripeConfigured()) {
+    throw new Error(
+      "Card payments are temporarily unavailable. Please try again later."
+    );
+  }
   const admin = createAdminClient();
   const { data: profile, error } = await admin
     .from("profiles")
@@ -105,6 +110,16 @@ export async function getDefaultPaymentMethodSummary(userId: string): Promise<{
   expMonth: number | null;
   expYear: number | null;
 } | null> {
+  if (!isStripeConfigured()) {
+    return {
+      hasCard: false,
+      brand: null,
+      last4: null,
+      expMonth: null,
+      expYear: null,
+    };
+  }
+
   const admin = createAdminClient();
   const { data: profile } = await admin
     .from("profiles")

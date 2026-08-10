@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
-import { getStripe, getStripeWebhookSecret } from "@/lib/payments/stripe";
+import {
+  getStripe,
+  getStripeEnvStatus,
+  getStripeWebhookSecret,
+  isStripeConfigured,
+} from "@/lib/payments/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   markSessionPaid,
@@ -8,16 +13,39 @@ import {
 } from "@/lib/payments/charge";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 /**
- * Stripe webhook — signature verified with STRIPE_WEBHOOK_SECRET.
- * Handles payment success/failure and card attachment events.
+ * Stripe webhook — raw body + signature verification via STRIPE_WEBHOOK_SECRET.
  *
- * Dashboard: Developers → Webhooks → Add endpoint
- * URL: https://www.oursacredreference.com/api/webhooks/stripe
- * Events: payment_intent.succeeded, payment_intent.payment_failed,
- *         setup_intent.succeeded, charge.refunded
+ * Production URL:
+ *   https://www.oursacredreference.com/api/webhooks/stripe
+ *
+ * Subscribe to:
+ *   payment_intent.succeeded
+ *   payment_intent.payment_failed
+ *   setup_intent.succeeded
+ *   charge.refunded
  */
+
+/** Lightweight status (no secrets) for ops checks. */
+export async function GET() {
+  const status = getStripeEnvStatus();
+  return NextResponse.json({
+    ok: true,
+    endpoint: "/api/webhooks/stripe",
+    method: "POST",
+    stripeReady: status.ready,
+    webhookReady: status.webhookReady,
+    events: [
+      "payment_intent.succeeded",
+      "payment_intent.payment_failed",
+      "setup_intent.succeeded",
+      "charge.refunded",
+    ],
+  });
+}
+
 export async function POST(request: Request) {
   const secret = getStripeWebhookSecret();
   if (!secret) {
@@ -28,14 +56,28 @@ export async function POST(request: Request) {
     );
   }
 
+  if (!isStripeConfigured() && !process.env.STRIPE_SECRET_KEY?.trim()) {
+    console.error("[stripe webhook] STRIPE_SECRET_KEY not set");
+    return NextResponse.json(
+      { error: "Stripe secret key not configured" },
+      { status: 503 }
+    );
+  }
+
   const signature = request.headers.get("stripe-signature");
   if (!signature) {
     return NextResponse.json({ error: "Missing signature" }, { status: 400 });
   }
 
-  const rawBody = await request.text();
-  let event: Stripe.Event;
+  let rawBody: string;
+  try {
+    rawBody = await request.text();
+  } catch (e) {
+    console.error("[stripe webhook] failed to read body", e);
+    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+  }
 
+  let event: Stripe.Event;
   try {
     event = getStripe().webhooks.constructEvent(rawBody, signature, secret);
   } catch (e) {
@@ -43,36 +85,35 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
+  console.info("[stripe webhook] received", event.type, event.id);
+
   try {
     switch (event.type) {
       case "payment_intent.succeeded": {
-        const pi = event.data.object as Stripe.PaymentIntent;
-        await handlePaymentSucceeded(pi);
+        await handlePaymentSucceeded(event.data.object as Stripe.PaymentIntent);
         break;
       }
       case "payment_intent.payment_failed": {
-        const pi = event.data.object as Stripe.PaymentIntent;
-        await handlePaymentFailed(pi);
+        await handlePaymentFailed(event.data.object as Stripe.PaymentIntent);
         break;
       }
       case "setup_intent.succeeded": {
-        const si = event.data.object as Stripe.SetupIntent;
-        await handleSetupSucceeded(si);
+        await handleSetupSucceeded(event.data.object as Stripe.SetupIntent);
         break;
       }
       case "charge.refunded": {
-        const charge = event.data.object as Stripe.Charge;
-        await handleChargeRefunded(charge);
+        await handleChargeRefunded(event.data.object as Stripe.Charge);
         break;
       }
       default:
-        // Ignore other events
+        console.info("[stripe webhook] ignored event", event.type);
         break;
     }
 
-    return NextResponse.json({ received: true });
+    return NextResponse.json({ received: true, type: event.type, id: event.id });
   } catch (e) {
-    console.error("[stripe webhook] handler error", event.type, e);
+    console.error("[stripe webhook] handler error", event.type, event.id, e);
+    // 500 so Stripe retries transient failures
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Handler failed" },
       { status: 500 }
@@ -80,19 +121,76 @@ export async function POST(request: Request) {
   }
 }
 
+async function resolveUserId(input: {
+  metadataUserId?: string | null;
+  customerId?: string | null;
+}): Promise<string | null> {
+  if (input.metadataUserId) return input.metadataUserId;
+  if (!input.customerId) return null;
+
+  try {
+    const admin = createAdminClient();
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("id")
+      .eq("stripe_customer_id", input.customerId)
+      .maybeSingle();
+    return profile?.id ?? null;
+  } catch (e) {
+    console.error("[stripe webhook] resolveUserId", e);
+    return null;
+  }
+}
+
+function customerIdFrom(
+  customer: string | Stripe.Customer | Stripe.DeletedCustomer | null
+): string | null {
+  if (!customer) return null;
+  return typeof customer === "string" ? customer : customer.id;
+}
+
 async function handlePaymentSucceeded(pi: Stripe.PaymentIntent) {
-  const sessionId = pi.metadata?.session_id;
-  const userId = pi.metadata?.user_id;
-  const admin = createAdminClient();
+  const sessionId = pi.metadata?.session_id || null;
+  const customerId = customerIdFrom(pi.customer);
+  const userId = await resolveUserId({
+    metadataUserId: pi.metadata?.user_id || null,
+    customerId,
+  });
 
   if (sessionId) {
-    await markSessionPaid(sessionId, pi.id);
+    try {
+      await markSessionPaid(sessionId, pi.id);
+    } catch (e) {
+      console.error("[stripe webhook] markSessionPaid", sessionId, e);
+      throw e;
+    }
+  } else {
+    // Fallback: match by existing PI id on a session
+    try {
+      const admin = createAdminClient();
+      const { data: session } = await admin
+        .from("sessions")
+        .select("id")
+        .eq("stripe_payment_intent_id", pi.id)
+        .maybeSingle();
+      if (session?.id) {
+        await markSessionPaid(session.id, pi.id);
+      }
+    } catch (e) {
+      console.error("[stripe webhook] session lookup by PI", e);
+    }
   }
 
-  const status = "succeeded" as const;
+  if (!userId) {
+    console.warn(
+      "[stripe webhook] payment_intent.succeeded without resolvable user",
+      pi.id
+    );
+    return;
+  }
+
   let last4: string | null = null;
   let brand: string | null = null;
-
   if (typeof pi.payment_method === "string") {
     try {
       const pm = await getStripe().paymentMethods.retrieve(pi.payment_method);
@@ -103,98 +201,96 @@ async function handlePaymentSucceeded(pi: Stripe.PaymentIntent) {
     }
   }
 
-  const { data: existing } = await admin
-    .from("payments")
-    .select("id")
-    .eq("stripe_payment_intent_id", pi.id)
-    .maybeSingle();
-
-  const row = {
-    user_id: userId || "00000000-0000-0000-0000-000000000000",
-    session_id: sessionId || null,
-    stripe_payment_intent_id: pi.id,
-    stripe_customer_id:
-      typeof pi.customer === "string" ? pi.customer : pi.customer?.id ?? null,
-    amount_cents: pi.amount,
-    currency: pi.currency,
-    status,
-    payment_method_last4: last4,
-    payment_method_brand: brand,
-    error_message: null as string | null,
-    metadata: { source: pi.metadata?.source ?? null },
-  };
-
-  // Prefer profile lookup by customer if user_id missing
-  if (!userId && row.stripe_customer_id) {
-    const { data: profile } = await admin
-      .from("profiles")
-      .select("id")
-      .eq("stripe_customer_id", row.stripe_customer_id)
-      .maybeSingle();
-    if (profile) row.user_id = profile.id;
-  }
-
-  if (row.user_id === "00000000-0000-0000-0000-000000000000") {
-    console.warn("[stripe webhook] no user for PI", pi.id);
-    return;
-  }
-
-  if (existing?.id) {
-    await admin.from("payments").update(row).eq("id", existing.id);
-  } else {
-    await admin.from("payments").insert(row);
-  }
+  await upsertPaymentRow({
+    userId,
+    sessionId,
+    pi,
+    customerId,
+    status: "succeeded",
+    last4,
+    brand,
+    errorMessage: null,
+  });
 }
 
 async function handlePaymentFailed(pi: Stripe.PaymentIntent) {
-  const sessionId = pi.metadata?.session_id;
+  const sessionId = pi.metadata?.session_id || null;
   const message =
-    pi.last_payment_error?.message || "Payment failed. Please update your card.";
+    pi.last_payment_error?.message ||
+    "Payment failed. Please update your card in the portal.";
 
   if (sessionId) {
-    await markSessionPaymentFailed(sessionId, pi.id, message);
-  }
-
-  const admin = createAdminClient();
-  const userId = pi.metadata?.user_id;
-  if (!userId) return;
-
-  const { data: existing } = await admin
-    .from("payments")
-    .select("id")
-    .eq("stripe_payment_intent_id", pi.id)
-    .maybeSingle();
-
-  const row = {
-    user_id: userId,
-    session_id: sessionId || null,
-    stripe_payment_intent_id: pi.id,
-    stripe_customer_id:
-      typeof pi.customer === "string" ? pi.customer : pi.customer?.id ?? null,
-    amount_cents: pi.amount,
-    currency: pi.currency,
-    status: "failed" as const,
-    payment_method_last4: null as string | null,
-    payment_method_brand: null as string | null,
-    error_message: message.slice(0, 500),
-    metadata: { stripe_status: pi.status },
-  };
-
-  if (existing?.id) {
-    await admin.from("payments").update(row).eq("id", existing.id);
+    try {
+      await markSessionPaymentFailed(sessionId, pi.id, message);
+    } catch (e) {
+      console.error("[stripe webhook] markSessionPaymentFailed", sessionId, e);
+    }
   } else {
-    await admin.from("payments").insert(row);
+    try {
+      const admin = createAdminClient();
+      const { data: session } = await admin
+        .from("sessions")
+        .select("id")
+        .eq("stripe_payment_intent_id", pi.id)
+        .maybeSingle();
+      if (session?.id) {
+        await markSessionPaymentFailed(session.id, pi.id, message);
+      }
+    } catch (e) {
+      console.error("[stripe webhook] failed session lookup by PI", e);
+    }
   }
+
+  const customerId = customerIdFrom(pi.customer);
+  const userId = await resolveUserId({
+    metadataUserId: pi.metadata?.user_id || null,
+    customerId,
+  });
+
+  if (!userId) {
+    console.warn(
+      "[stripe webhook] payment_intent.payment_failed without resolvable user",
+      pi.id
+    );
+    return;
+  }
+
+  await upsertPaymentRow({
+    userId,
+    sessionId,
+    pi,
+    customerId,
+    status: "failed",
+    last4: null,
+    brand: null,
+    errorMessage: message.slice(0, 500),
+  });
 }
 
 async function handleSetupSucceeded(si: Stripe.SetupIntent) {
-  const userId = si.metadata?.user_id;
   const pmId =
     typeof si.payment_method === "string"
       ? si.payment_method
-      : si.payment_method?.id;
+      : si.payment_method?.id ?? null;
 
-  if (!userId || !pmId) return;
+  if (!pmId) {
+    console.warn("[stripe webhook] setup_intent.succeeded missing PM", si.id);
+    return;
+  }
+
+  const customerId = customerIdFrom(si.customer);
+  let userId = await resolveUserId({
+    metadataUserId: si.metadata?.user_id || null,
+    customerId,
+  });
+
+  if (!userId) {
+    console.warn(
+      "[stripe webhook] setup_intent.succeeded without resolvable user",
+      si.id
+    );
+    return;
+  }
 
   const admin = createAdminClient();
   const { data: profile } = await admin
@@ -203,43 +299,57 @@ async function handleSetupSucceeded(si: Stripe.SetupIntent) {
     .eq("id", userId)
     .maybeSingle();
 
-  if (!profile) return;
-
-  const stripe = getStripe();
-  const customerId =
-    profile.stripe_customer_id ||
-    (typeof si.customer === "string" ? si.customer : si.customer?.id);
-
-  if (customerId) {
-    await stripe.customers.update(customerId, {
-      invoice_settings: { default_payment_method: pmId },
-    });
+  if (!profile) {
+    console.warn("[stripe webhook] profile missing for setup", userId);
+    return;
   }
 
-  await admin
+  const stripeCustomerId = profile.stripe_customer_id || customerId;
+
+  if (stripeCustomerId) {
+    try {
+      await getStripe().customers.update(stripeCustomerId, {
+        invoice_settings: { default_payment_method: pmId },
+      });
+    } catch (e) {
+      console.error("[stripe webhook] set default PM on customer", e);
+    }
+  }
+
+  const { error } = await admin
     .from("profiles")
     .update({
       stripe_default_payment_method_id: pmId,
-      ...(customerId && !profile.stripe_customer_id
-        ? { stripe_customer_id: customerId }
+      ...(stripeCustomerId && !profile.stripe_customer_id
+        ? { stripe_customer_id: stripeCustomerId }
         : {}),
     })
     .eq("id", userId);
+
+  if (error) {
+    console.error("[stripe webhook] profile update after setup", error.message);
+    throw new Error(error.message);
+  }
 }
 
 async function handleChargeRefunded(charge: Stripe.Charge) {
   const piId =
     typeof charge.payment_intent === "string"
       ? charge.payment_intent
-      : charge.payment_intent?.id;
+      : charge.payment_intent?.id ?? null;
 
   if (!piId) return;
 
   const admin = createAdminClient();
-  await admin
+
+  const { error: payErr } = await admin
     .from("payments")
     .update({ status: "refunded" })
     .eq("stripe_payment_intent_id", piId);
+
+  if (payErr) {
+    console.error("[stripe webhook] refund payment row", payErr.message);
+  }
 
   const { data: session } = await admin
     .from("sessions")
@@ -248,9 +358,60 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
     .maybeSingle();
 
   if (session) {
-    await admin
+    const { error: sessErr } = await admin
       .from("sessions")
       .update({ payment_status: "refunded" })
       .eq("id", session.id);
+    if (sessErr) {
+      console.error("[stripe webhook] refund session", sessErr.message);
+    }
+  }
+}
+
+async function upsertPaymentRow(input: {
+  userId: string;
+  sessionId: string | null;
+  pi: Stripe.PaymentIntent;
+  customerId: string | null;
+  status: "succeeded" | "failed" | "processing" | "pending" | "canceled" | "refunded";
+  last4: string | null;
+  brand: string | null;
+  errorMessage: string | null;
+}): Promise<void> {
+  const admin = createAdminClient();
+  const { pi } = input;
+
+  const { data: existing } = await admin
+    .from("payments")
+    .select("id")
+    .eq("stripe_payment_intent_id", pi.id)
+    .maybeSingle();
+
+  const row = {
+    user_id: input.userId,
+    session_id: input.sessionId,
+    stripe_payment_intent_id: pi.id,
+    stripe_customer_id: input.customerId,
+    amount_cents: pi.amount,
+    currency: pi.currency,
+    status: input.status,
+    payment_method_last4: input.last4,
+    payment_method_brand: input.brand,
+    error_message: input.errorMessage,
+    metadata: {
+      source: pi.metadata?.source ?? null,
+      stripe_status: pi.status,
+    },
+  };
+
+  if (existing?.id) {
+    const { error } = await admin
+      .from("payments")
+      .update(row)
+      .eq("id", existing.id);
+    if (error) throw new Error(error.message);
+  } else {
+    const { error } = await admin.from("payments").insert(row);
+    if (error) throw new Error(error.message);
   }
 }

@@ -370,7 +370,7 @@ Templates: forest/gold branded HTML in `src/lib/email/templates.ts`.
 | `STRIPE_SESSION_AMOUNT_CENTS` | Default paid-session amount in cents (e.g. `15000` = $150). `0` skips auto-charge |
 | `STRIPE_CURRENCY` | Default `usd` |
 
-#### Create the Stripe webhook
+#### Create the Stripe webhook (final)
 
 1. Stripe Dashboard → **Developers → Webhooks → Add endpoint**
 2. Endpoint URL: `https://www.oursacredreference.com/api/webhooks/stripe`
@@ -382,6 +382,9 @@ Templates: forest/gold branded HTML in `src/lib/email/templates.ts`.
 4. Copy **Signing secret** → set `STRIPE_WEBHOOK_SECRET` in Vercel (Production + Preview)
 5. Redeploy after adding env vars
 6. In Dashboard → **Settings → Payment methods**: keep **Cards** on; turn off PayPal/Venmo if listed
+7. Optional smoke check (no secrets leaked):  
+   `GET https://www.oursacredreference.com/api/webhooks/stripe` → `webhookReady: true` when secret + secret key are set  
+   `GET https://www.oursacredreference.com/api/health` → `env.stripe` + `env.stripeWebhook` true
 
 #### Test mode vs live mode
 
@@ -395,6 +398,49 @@ Local webhook testing: `stripe listen --forward-to localhost:3000/api/webhooks/s
 #### Database
 
 Run Supabase migration **`008_stripe_payments.sql`** (SQL Editor) so profiles/sessions/payments columns exist.
+
+#### Testing checklist (after env + webhook + migration)
+
+Use **test keys** first. Card: `4242 4242 4242 4242`, any future expiry, any CVC, any ZIP.
+
+1. **Health**
+   - [ ] `/api/health` shows `stripe: true` and `stripeWebhook: true`
+   - [ ] `/api/webhooks/stripe` (GET) shows `webhookReady: true`
+2. **Save card**
+   - [ ] Sign in as a client → **Portal → Profile → Payment method**
+   - [ ] Add test card → success message; card brand + last4 shown
+   - [ ] Stripe Dashboard → Customers shows a customer with that card
+   - [ ] Webhook event `setup_intent.succeeded` is green (200)
+3. **Pay outstanding session (optional pay-now)**
+   - [ ] Set `STRIPE_SESSION_AMOUNT_CENTS` > 0 (e.g. `15000`)
+   - [ ] Book or ensure a non-discovery session with `payment_status = pending`
+   - [ ] Portal home shows **Pay with card** for that session
+   - [ ] Complete payment → status becomes paid; webhook `payment_intent.succeeded` succeeds
+4. **Post-session automatic charge**
+   - [ ] Client has a card on file
+   - [ ] Paid session completes (session-ended / recording pipeline marks `completed`)
+   - [ ] Session `payment_status` → `paid` (or `failed` with clear error if card missing)
+   - [ ] Stripe shows an off-session PaymentIntent (card only)
+5. **Admin manual charge**
+   - [ ] `/admin` appointments → Payment column visible
+   - [ ] **Charge card** on a pending/failed session → reloads as paid when successful
+6. **Failure path**
+   - [ ] Use decline card `4000 0000 0000 0002` (or remove card on file and charge)
+   - [ ] Session shows `failed` + friendly message; client can pay again from portal
+7. **Refund (optional)**
+   - [ ] Refund in Stripe Dashboard → session/payment status becomes `refunded` via `charge.refunded`
+8. **Methods policy**
+   - [ ] Payment Element never offers PayPal / Venmo
+   - [ ] Manual PayPal (if used) stays as a direct link from Michele outside Stripe
+
+#### Graceful degradation
+
+| Missing env | Behavior |
+|-------------|----------|
+| No Stripe keys | Portal shows “payments not configured”; booking still works; no crashes |
+| No `STRIPE_WEBHOOK_SECRET` | Webhook returns 503; charges may still work but status sync is incomplete |
+| `STRIPE_SESSION_AMOUNT_CENTS=0` | Auto post-session charge skipped (`no_amount_configured`) |
+| No card on file | Post-session charge fails with clear portal/admin error |
 
 ---
 

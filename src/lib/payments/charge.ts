@@ -1,6 +1,10 @@
 import type Stripe from "stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getStripe } from "@/lib/payments/stripe";
+import {
+  friendlyStripeError,
+  getStripe,
+  isStripeConfigured,
+} from "@/lib/payments/stripe";
 import { getOrCreateStripeCustomer } from "@/lib/payments/customers";
 import {
   assertAllowedPaymentMethodTypes,
@@ -25,6 +29,14 @@ export type ChargeResult = {
 export async function chargeSessionIfEligible(
   sessionId: string
 ): Promise<ChargeResult> {
+  if (!isStripeConfigured()) {
+    return {
+      success: true,
+      skipped: true,
+      reason: "stripe_not_configured",
+    };
+  }
+
   const admin = createAdminClient();
   const { data: session, error } = await admin
     .from("sessions")
@@ -193,9 +205,8 @@ export async function chargeSessionIfEligible(
       error: pi.status,
     };
   } catch (e) {
-    const message =
-      e instanceof Error ? e.message : "Payment failed unexpectedly";
-    console.error("[stripe] chargeSessionIfEligible", sessionId, message);
+    const message = friendlyStripeError(e);
+    console.error("[stripe] chargeSessionIfEligible", sessionId, e);
 
     await admin
       .from("sessions")
@@ -219,6 +230,11 @@ export async function createBookingPaymentIntent(input: {
   amountCents: number;
   currency?: string;
 }): Promise<{ clientSecret: string; paymentIntentId: string }> {
+  if (!isStripeConfigured()) {
+    throw new Error(
+      "Card payments are temporarily unavailable. Please try again later."
+    );
+  }
   if (input.amountCents <= 0) {
     throw new Error("Amount must be greater than zero");
   }
@@ -270,6 +286,11 @@ export async function createSetupIntentForUser(userId: string): Promise<{
   clientSecret: string;
   customerId: string;
 }> {
+  if (!isStripeConfigured()) {
+    throw new Error(
+      "Card payments are temporarily unavailable. Please try again later."
+    );
+  }
   const { customerId } = await getOrCreateStripeCustomer(userId);
   const stripe = getStripe();
   const paymentParams = paymentIntentPaymentParams();
