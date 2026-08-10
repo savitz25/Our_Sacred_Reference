@@ -12,6 +12,7 @@ import {
   isSlotInBookableFuture,
   wallClockToUtc,
 } from "@/lib/availability/slots";
+import { amountForSessionType } from "@/lib/payments/pricing";
 
 export type BookingResult = {
   success: boolean;
@@ -263,6 +264,7 @@ export async function bookDiscoverySession(input: {
     }
 
     const consentAt = new Date().toISOString();
+    const pricing = amountForSessionType(sessionType);
     const { data: session, error: sessionError } = await admin
       .from("sessions")
       .insert({
@@ -278,6 +280,10 @@ export async function bookDiscoverySession(input: {
         recording_enabled: true,
         informed_consent_at: consentAt,
         informed_consent_version: INFORMED_CONSENT_VERSION,
+        // Discovery free; paid types pending until card charged post-session or pay-now
+        payment_status: pricing.paymentRequired ? "pending" : "not_required",
+        amount_cents: pricing.amountCents > 0 ? pricing.amountCents : null,
+        currency: pricing.currency,
       })
       .select("id")
       .single();

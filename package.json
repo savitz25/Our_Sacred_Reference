@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@livekit/track-processors": "^0.7.2",
+    "@stripe/react-stripe-js": "^6.8.0",
+    "@stripe/stripe-js": "^9.13.0",
     "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.110.7",
     "@vercel/analytics": "^2.0.1",
@@ -25,6 +27,7 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "resend": "^6.17.2",
+    "stripe": "^22.4.0",
     "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {

@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { UpcomingSessionsPanel } from "@/components/portal/UpcomingSessionsPanel";
 import { EmergencyRequestButton } from "@/components/portal/EmergencyRequestButton";
 import { EmergencyPortalBanner } from "@/components/portal/EmergencyPortalBanner";
+import { SessionPaymentForm } from "@/components/payments/SessionPaymentForm";
 
 export default async function PortalDashboardPage({
   searchParams,
@@ -71,6 +72,29 @@ export default async function PortalDashboardPage({
   const isClient =
     profile.role !== "practitioner" && profile.role !== "admin";
 
+  // Sessions awaiting payment (pay now or after failed post-session charge)
+  let payableSessions: { id: string; title: string; payment_status: string }[] =
+    [];
+  if (isClient) {
+    const { data: payable, error: payErr } = await supabase
+      .from("sessions")
+      .select("id, title, payment_status")
+      .eq("user_id", user.id)
+      .in("payment_status", ["pending", "failed"])
+      .order("scheduled_at", { ascending: false })
+      .limit(3);
+    if (payErr) {
+      // Migration 008 may not be applied yet
+      console.warn("[portal] payment sessions query:", payErr.message);
+    } else {
+      payableSessions = (payable ?? []) as {
+        id: string;
+        title: string;
+        payment_status: string;
+      }[];
+    }
+  }
+
   return (
     <div>
       <div className="mb-10">
@@ -94,6 +118,21 @@ export default async function PortalDashboardPage({
       {isClient && (
         <div className="mb-8">
           <EmergencyRequestButton />
+        </div>
+      )}
+
+      {payableSessions.length > 0 && (
+        <div className="mb-10 space-y-4">
+          {payableSessions.map((s) => (
+            <div key={s.id}>
+              <p className="text-sm text-ink-soft mb-2">
+                {s.payment_status === "failed"
+                  ? `Payment needs attention for “${s.title}”.`
+                  : `Optional: pay now for “${s.title}” (or we can charge your saved card after the session).`}
+              </p>
+              <SessionPaymentForm sessionId={s.id} />
+            </div>
+          ))}
         </div>
       )}
 

@@ -26,6 +26,11 @@ export async function GET() {
         process.env.SUPABASE_S3_ACCESS_KEY && process.env.SUPABASE_S3_SECRET_KEY
       ),
       resend: Boolean(process.env.RESEND_API_KEY),
+      stripe: Boolean(
+        process.env.STRIPE_SECRET_KEY &&
+          process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+      ),
+      stripeWebhook: Boolean(process.env.STRIPE_WEBHOOK_SECRET),
     },
   };
 

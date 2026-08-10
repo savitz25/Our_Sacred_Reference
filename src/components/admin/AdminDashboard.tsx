@@ -22,6 +22,8 @@ import { Button } from "@/components/ui/Button";
 import { AvailabilityManager } from "@/components/admin/AvailabilityManager";
 import { EmergencyRequestsPanel } from "@/components/admin/EmergencyRequestsPanel";
 import { cn } from "@/lib/utils";
+import { adminChargeSessionAction } from "@/app/actions/payments";
+import { formatUsdFromCents } from "@/lib/payments/pricing";
 
 type Tab = "appointments" | "recordings" | "availability" | "emergency";
 
@@ -463,13 +465,14 @@ function AppointmentsTable({ sessions }: { sessions: AdminSessionRow[] }) {
   return (
     <div className="rounded-2xl border border-border bg-white shadow-soft overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left min-w-[720px]">
+        <table className="w-full text-sm text-left min-w-[860px]">
           <thead className="bg-cream-dark/50 text-ink-soft text-xs uppercase tracking-wide">
             <tr>
               <th className="px-4 py-3 font-medium">Client</th>
               <th className="px-4 py-3 font-medium">Date / time</th>
               <th className="px-4 py-3 font-medium">Type</th>
               <th className="px-4 py-3 font-medium">Status</th>
+              <th className="px-4 py-3 font-medium">Payment</th>
               <th className="px-4 py-3 font-medium">Actions</th>
             </tr>
           </thead>
@@ -502,17 +505,21 @@ function AppointmentsTable({ sessions }: { sessions: AdminSessionRow[] }) {
                     <Badge variant="outline">{s.status.replace(/_/g, " ")}</Badge>
                   </td>
                   <td className="px-4 py-3">
-                    {upcoming ? (
-                      <Link
-                        href={`/portal/session/${s.id}`}
-                        className="inline-flex items-center gap-1 text-teal font-medium hover:underline"
-                      >
-                        Join
-                        <ExternalLink className="h-3.5 w-3.5" aria-hidden />
-                      </Link>
-                    ) : (
-                      <span className="text-muted text-xs">—</span>
-                    )}
+                    <PaymentCell session={s} />
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-col gap-1.5 items-start">
+                      {upcoming ? (
+                        <Link
+                          href={`/portal/session/${s.id}`}
+                          className="inline-flex items-center gap-1 text-teal font-medium hover:underline"
+                        >
+                          Join
+                          <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+                        </Link>
+                      ) : null}
+                      <ChargeButton session={s} />
+                    </div>
                   </td>
                 </tr>
               );
@@ -520,6 +527,87 @@ function AppointmentsTable({ sessions }: { sessions: AdminSessionRow[] }) {
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+function PaymentCell({ session }: { session: AdminSessionRow }) {
+  const status = session.payment_status ?? "not_required";
+  const amount =
+    session.amount_cents != null && session.amount_cents > 0
+      ? formatUsdFromCents(session.amount_cents, session.currency || "usd")
+      : null;
+
+  const variant =
+    status === "paid"
+      ? "teal"
+      : status === "failed"
+        ? "outline"
+        : status === "pending" || status === "processing"
+          ? "gold"
+          : "outline";
+
+  return (
+    <div>
+      <Badge variant={variant as "teal" | "gold" | "outline"}>
+        {status.replace(/_/g, " ")}
+      </Badge>
+      {amount && (
+        <p className="text-xs text-muted mt-1">{amount}</p>
+      )}
+      {session.payment_error && (
+        <p className="text-xs text-red-700 mt-1 max-w-[12rem] line-clamp-2">
+          {session.payment_error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function ChargeButton({ session }: { session: AdminSessionRow }) {
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+
+  const canCharge =
+    session.payment_status &&
+    !["not_required", "paid", "refunded"].includes(session.payment_status) &&
+    (session.amount_cents == null || session.amount_cents > 0);
+
+  if (!canCharge) {
+    return note ? (
+      <span className="text-xs text-muted">{note}</span>
+    ) : (
+      <span className="text-muted text-xs">—</span>
+    );
+  }
+
+  return (
+    <div>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={async () => {
+          setBusy(true);
+          setNote(null);
+          const result = await adminChargeSessionAction(session.id);
+          setBusy(false);
+          if (result.success) {
+            setNote(
+              result.skipped
+                ? `Skipped: ${result.reason ?? "ok"}`
+                : "Charge succeeded"
+            );
+            // Soft reload so payment column updates
+            window.location.reload();
+          } else {
+            setNote(result.error ?? "Charge failed");
+          }
+        }}
+        className="text-xs font-medium text-forest underline-offset-2 hover:underline disabled:opacity-50"
+      >
+        {busy ? "Charging…" : "Charge card"}
+      </button>
+      {note && <p className="text-xs text-muted mt-0.5 max-w-[10rem]">{note}</p>}
     </div>
   );
 }

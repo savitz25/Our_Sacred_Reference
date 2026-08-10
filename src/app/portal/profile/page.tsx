@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/client";
 import { updateProfile } from "@/app/actions/profile";
 import type { Profile } from "@/lib/database.types";
+import { PaymentMethodSection } from "@/components/payments/PaymentMethodForm";
 
 export default function PortalProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -188,6 +189,8 @@ export default function PortalProfilePage() {
             </label>
           </div>
         </Card>
+
+        <PaymentMethodSection />
 
         {error && (
           <p className="text-sm text-red-700" role="alert">

@@ -149,6 +149,8 @@ export async function requireProfile(nextPath?: string) {
     notifications_enabled: true,
     recording_consent: true,
     intention: null,
+    stripe_customer_id: null,
+    stripe_default_payment_method_id: null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };

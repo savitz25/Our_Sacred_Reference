@@ -36,6 +36,22 @@ export type EmergencyRequestStatus =
   | "expired"
   | "cancelled";
 
+export type SessionPaymentStatus =
+  | "not_required"
+  | "pending"
+  | "processing"
+  | "paid"
+  | "failed"
+  | "refunded";
+
+export type PaymentRecordStatus =
+  | "pending"
+  | "processing"
+  | "succeeded"
+  | "failed"
+  | "canceled"
+  | "refunded";
+
 export interface Database {
   public: {
     Tables: {
@@ -50,6 +66,8 @@ export interface Database {
           notifications_enabled: boolean;
           recording_consent: boolean;
           intention: string | null;
+          stripe_customer_id: string | null;
+          stripe_default_payment_method_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -63,6 +81,8 @@ export interface Database {
           notifications_enabled?: boolean;
           recording_consent?: boolean;
           intention?: string | null;
+          stripe_customer_id?: string | null;
+          stripe_default_payment_method_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -76,6 +96,8 @@ export interface Database {
           notifications_enabled?: boolean;
           recording_consent?: boolean;
           intention?: string | null;
+          stripe_customer_id?: string | null;
+          stripe_default_payment_method_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -100,6 +122,12 @@ export interface Database {
           egress_id: string | null;
           recording_path: string | null;
           reminder_1h_sent_at: string | null;
+          payment_status: SessionPaymentStatus;
+          amount_cents: number | null;
+          currency: string;
+          stripe_payment_intent_id: string | null;
+          charged_at: string | null;
+          payment_error: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -121,6 +149,12 @@ export interface Database {
           egress_id?: string | null;
           recording_path?: string | null;
           reminder_1h_sent_at?: string | null;
+          payment_status?: SessionPaymentStatus;
+          amount_cents?: number | null;
+          currency?: string;
+          stripe_payment_intent_id?: string | null;
+          charged_at?: string | null;
+          payment_error?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -142,6 +176,63 @@ export interface Database {
           egress_id?: string | null;
           recording_path?: string | null;
           reminder_1h_sent_at?: string | null;
+          payment_status?: SessionPaymentStatus;
+          amount_cents?: number | null;
+          currency?: string;
+          stripe_payment_intent_id?: string | null;
+          charged_at?: string | null;
+          payment_error?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      payments: {
+        Row: {
+          id: string;
+          user_id: string;
+          session_id: string | null;
+          stripe_payment_intent_id: string | null;
+          stripe_customer_id: string | null;
+          amount_cents: number;
+          currency: string;
+          status: PaymentRecordStatus;
+          payment_method_last4: string | null;
+          payment_method_brand: string | null;
+          error_message: string | null;
+          metadata: Json | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          session_id?: string | null;
+          stripe_payment_intent_id?: string | null;
+          stripe_customer_id?: string | null;
+          amount_cents: number;
+          currency?: string;
+          status?: PaymentRecordStatus;
+          payment_method_last4?: string | null;
+          payment_method_brand?: string | null;
+          error_message?: string | null;
+          metadata?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          session_id?: string | null;
+          stripe_payment_intent_id?: string | null;
+          stripe_customer_id?: string | null;
+          amount_cents?: number;
+          currency?: string;
+          status?: PaymentRecordStatus;
+          payment_method_last4?: string | null;
+          payment_method_brand?: string | null;
+          error_message?: string | null;
+          metadata?: Json | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -378,6 +469,8 @@ export interface Database {
       video_status: VideoStatus;
       availability_block_kind: AvailabilityBlockKind;
       emergency_request_status: EmergencyRequestStatus;
+      session_payment_status: SessionPaymentStatus;
+      payment_record_status: PaymentRecordStatus;
     };
     CompositeTypes: Record<string, never>;
   };
@@ -386,6 +479,7 @@ export interface Database {
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 export type Session = Database["public"]["Tables"]["sessions"]["Row"];
 export type Video = Database["public"]["Tables"]["videos"]["Row"];
+export type Payment = Database["public"]["Tables"]["payments"]["Row"];
 export type AvailabilityBlock =
   Database["public"]["Tables"]["availability_blocks"]["Row"];
 export type EmergencyRequest =

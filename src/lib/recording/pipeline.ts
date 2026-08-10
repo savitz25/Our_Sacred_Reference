@@ -182,6 +182,29 @@ export async function finalizeSessionRecording(input: {
     .eq("id", input.sessionId);
   steps.push("session_completed");
 
+  // Post-session card charge (card on file, card-only Stripe PaymentIntent)
+  try {
+    const { chargeSessionIfEligible } = await import("@/lib/payments/charge");
+    const { isStripeConfigured } = await import("@/lib/payments/stripe");
+    if (isStripeConfigured()) {
+      const charge = await chargeSessionIfEligible(input.sessionId);
+      steps.push(
+        charge.skipped
+          ? `payment_skipped:${charge.reason ?? "unknown"}`
+          : charge.success
+            ? `payment_charged:${charge.paymentIntentId ?? "ok"}`
+            : `payment_failed:${charge.error ?? "error"}`
+      );
+    } else {
+      steps.push("payment_skipped:stripe_not_configured");
+    }
+  } catch (e) {
+    console.error("[pipeline] post-session charge", e);
+    steps.push(
+      `payment_error:${e instanceof Error ? e.message : "charge_exception"}`
+    );
+  }
+
   const videoId = await ensureVideoRow({
     sessionId: input.sessionId,
     userId: session.user_id,

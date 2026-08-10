@@ -27,7 +27,7 @@ Supabase: `https://mbboakpdxgquntlohlix.supabase.co`
 | Security headers, sitemap, robots, health check | ✅ |
 | Practitioner **Admin** (`/admin`) — appointments & recordings | ✅ |
 | Admin auth/role hardening for production | ✅ |
-| Stripe payments | ⏳ config ready (`src/lib/payments/stripe-config.ts`); Checkout not wired |
+| Stripe payments | ✅ card-only (Payment Element + post-session charge + webhook) |
 | Full HIPAA / BAAs | ⏳ legal + vendor BAAs |
 
 ### Legal pages
@@ -252,7 +252,7 @@ Until the domain is verified, Resend may only allow sends to your account email;
 
 ### H. Post-launch (not blockers for soft launch)
 
-- [ ] Stripe Checkout for paid packages (card only; no PayPal/Venmo; fees absorbed — see `src/lib/payments/stripe-config.ts`)  
+- [x] Stripe card payments (save card, pay-now, post-session charge; no PayPal/Venmo)  
 - [ ] Vendor BAAs if treating as regulated PHI (current positioning is coaching, not HIPAA therapy)  
 - [ ] Practitioner admin UI  
 - [ ] Self-hosted FFmpeg worker for silence trim in production  
@@ -342,20 +342,59 @@ Templates: forest/gold branded HTML in `src/lib/email/templates.ts`.
 
 ## Remaining product TODOs
 
-- Stripe paid sessions (use `checkoutSessionPaymentParams()` — cards only; ACH optional; never PayPal/Venmo in Stripe; no fee passthrough)  
 - HIPAA/BAA path only if clinical positioning changes  
-- Practitioner multi-client admin UI  
+- Package / multi-session prepaid products (optional)  
 
-### Stripe payment policy (when enabled)
+### Stripe payments (card only)
 
 | Rule | Detail |
 |------|--------|
-| Processor | Stripe only for site checkout |
-| Allowed methods | **Card** (international cards OK); **ACH** only if explicitly enabled |
-| Disabled | PayPal, Venmo, BNPL, Cash App, etc. in Checkout / Payment Element |
+| Processor | Stripe |
+| Allowed methods | **Credit / debit cards** only (international cards OK) |
+| Disabled | PayPal, Venmo, BNPL, Cash App, Link wallets in Payment Element |
 | Manual PayPal | Michele may send a **direct PayPal link** outside Stripe (avoids double fees) |
-| Fees | Practice absorbs Stripe fees by default — do not auto-surcharge clients |
-| Config | `src/lib/payments/stripe-config.ts` |
+| Fees | Practice absorbs Stripe fees — no client surcharge |
+| Save card | Portal → Profile → Payment method (SetupIntent) |
+| Pay now | Portal dashboard for `pending` / `failed` sessions |
+| Post-session | Automatic off-session charge when session is completed (recording pipeline) |
+| Admin | `/admin` appointments show payment status + **Charge card** |
+| Config | `src/lib/payments/*` |
+
+#### Stripe env vars (Vercel)
+
+| Variable | Where |
+|----------|--------|
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe Dashboard → Developers → API keys (`pk_…`) |
+| `STRIPE_SECRET_KEY` | Same page (`sk_…`) — **server only** |
+| `STRIPE_WEBHOOK_SECRET` | Webhook endpoint signing secret (`whsec_…`) |
+| `STRIPE_SESSION_AMOUNT_CENTS` | Default paid-session amount in cents (e.g. `15000` = $150). `0` skips auto-charge |
+| `STRIPE_CURRENCY` | Default `usd` |
+
+#### Create the Stripe webhook
+
+1. Stripe Dashboard → **Developers → Webhooks → Add endpoint**
+2. Endpoint URL: `https://www.oursacredreference.com/api/webhooks/stripe`
+3. Events to send:
+   - `payment_intent.succeeded`
+   - `payment_intent.payment_failed`
+   - `setup_intent.succeeded`
+   - `charge.refunded`
+4. Copy **Signing secret** → set `STRIPE_WEBHOOK_SECRET` in Vercel (Production + Preview)
+5. Redeploy after adding env vars
+6. In Dashboard → **Settings → Payment methods**: keep **Cards** on; turn off PayPal/Venmo if listed
+
+#### Test mode vs live mode
+
+| Mode | Keys | Cards |
+|------|------|--------|
+| Test | `pk_test_…` / `sk_test_…` | Use [Stripe test cards](https://docs.stripe.com/testing) e.g. `4242 4242 4242 4242` |
+| Live | `pk_live_…` / `sk_live_…` | Real cards; create a **live** webhook endpoint too |
+
+Local webhook testing: `stripe listen --forward-to localhost:3000/api/webhooks/stripe` then use the CLI `whsec_…` as `STRIPE_WEBHOOK_SECRET`.
+
+#### Database
+
+Run Supabase migration **`008_stripe_payments.sql`** (SQL Editor) so profiles/sessions/payments columns exist.
 
 ---
 

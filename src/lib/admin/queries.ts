@@ -17,6 +17,12 @@ export type AdminSessionRow = {
   notes: string | null;
   client_name: string | null;
   client_email: string | null;
+  payment_status?: string | null;
+  amount_cents?: number | null;
+  currency?: string | null;
+  charged_at?: string | null;
+  payment_error?: string | null;
+  stripe_payment_intent_id?: string | null;
 };
 
 export type AdminVideoRow = {
@@ -43,16 +49,33 @@ export async function fetchAdminSessions(): Promise<AdminSessionRow[]> {
   try {
     const supabase = await createClient();
 
-    const { data: sessions, error: sErr } = await supabase
+    // Prefer payment columns when migration 008 is applied; fall back if missing
+    let sessions: Array<Record<string, unknown>> | null = null;
+    const withPay = await supabase
       .from("sessions")
       .select(
-        "id, user_id, title, session_type, scheduled_at, duration_minutes, status, meeting_url, notes"
+        "id, user_id, title, session_type, scheduled_at, duration_minutes, status, meeting_url, notes, payment_status, amount_cents, currency, charged_at, payment_error, stripe_payment_intent_id"
       )
       .order("scheduled_at", { ascending: false });
 
-    if (sErr) {
-      console.error("[admin] sessions query error:", sErr.message, sErr.code);
-      return [];
+    if (withPay.error) {
+      console.warn(
+        "[admin] sessions+payment query failed, retrying base fields:",
+        withPay.error.message
+      );
+      const base = await supabase
+        .from("sessions")
+        .select(
+          "id, user_id, title, session_type, scheduled_at, duration_minutes, status, meeting_url, notes"
+        )
+        .order("scheduled_at", { ascending: false });
+      if (base.error) {
+        console.error("[admin] sessions query error:", base.error.message, base.error.code);
+        return [];
+      }
+      sessions = (base.data ?? []) as Array<Record<string, unknown>>;
+    } else {
+      sessions = (withPay.data ?? []) as Array<Record<string, unknown>>;
     }
 
     const { data: profiles, error: pErr } = await supabase
@@ -66,19 +89,26 @@ export async function fetchAdminSessions(): Promise<AdminSessionRow[]> {
     const map = new Map((profiles ?? []).map((p) => [p.id, p] as const));
 
     return (sessions ?? []).map((s) => {
-      const p = map.get(s.user_id);
+      const p = map.get(s.user_id as string);
       return {
-        id: s.id,
-        user_id: s.user_id,
-        title: s.title ?? "Session",
-        session_type: s.session_type,
-        scheduled_at: s.scheduled_at,
-        duration_minutes: s.duration_minutes ?? 60,
-        status: s.status,
-        meeting_url: s.meeting_url,
-        notes: s.notes,
+        id: s.id as string,
+        user_id: s.user_id as string,
+        title: (s.title as string) ?? "Session",
+        session_type: s.session_type as SessionType,
+        scheduled_at: s.scheduled_at as string,
+        duration_minutes: (s.duration_minutes as number) ?? 60,
+        status: s.status as SessionStatus,
+        meeting_url: (s.meeting_url as string | null) ?? null,
+        notes: (s.notes as string | null) ?? null,
         client_name: p?.full_name ?? null,
         client_email: p?.email ?? null,
+        payment_status: (s.payment_status as string | null) ?? null,
+        amount_cents: (s.amount_cents as number | null) ?? null,
+        currency: (s.currency as string | null) ?? null,
+        charged_at: (s.charged_at as string | null) ?? null,
+        payment_error: (s.payment_error as string | null) ?? null,
+        stripe_payment_intent_id:
+          (s.stripe_payment_intent_id as string | null) ?? null,
       };
     });
   } catch (e) {
