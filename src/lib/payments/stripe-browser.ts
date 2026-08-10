@@ -43,9 +43,28 @@ export async function loadStripeBrowser(): Promise<{
       cache: "no-store",
       credentials: "same-origin",
     });
-    const data = (await res.json()) as StripeBrowserConfig & {
-      publishableKey?: string | null;
-    };
+
+    if (!res.ok) {
+      console.error(
+        "[stripe-browser] /api/stripe/config HTTP",
+        res.status,
+        res.statusText
+      );
+    }
+
+    let data: StripeBrowserConfig & { publishableKey?: string | null };
+    try {
+      data = (await res.json()) as StripeBrowserConfig & {
+        publishableKey?: string | null;
+      };
+    } catch (parseErr) {
+      console.error("[stripe-browser] config JSON parse failed", parseErr);
+      return {
+        stripe: null,
+        error: "Stripe is not configured correctly. Please contact support.",
+        config: null,
+      };
+    }
 
     const fromApi = sanitizeStripeKey(data.publishableKey ?? null);
     const fromEnv = sanitizeStripeKey(
@@ -56,14 +75,16 @@ export async function loadStripeBrowser(): Promise<{
     if (typeof window !== "undefined") {
       const inspection = inspectPublishableKey(key);
       console.info(
-        "[stripe-browser] pk present=%s prefix=%s len=%s mode=%s valid=%s issues=%s source=%s",
+        "[stripe-browser] pk present=%s prefix=%s len=%s mode=%s valid=%s issues=%s source=%s http=%s ok=%s",
         inspection.present,
         inspection.prefix,
         inspection.length,
         inspection.mode,
         inspection.looksValid,
         inspection.issues.join(",") || "none",
-        fromApi ? "api" : fromEnv ? "env" : "none"
+        fromApi ? "api" : fromEnv ? "env" : "none",
+        res.status,
+        data.ok
       );
     }
 
@@ -79,6 +100,7 @@ export async function loadStripeBrowser(): Promise<{
 
     const inspection = inspectPublishableKey(key);
     if (!inspection.looksValid) {
+      console.error("[stripe-browser] publishable key failed inspection", inspection);
       return {
         stripe: null,
         error: clientFacingKeyError(inspection),
@@ -88,11 +110,21 @@ export async function loadStripeBrowser(): Promise<{
 
     if (!cachedPromise || cachedKey !== key) {
       cachedKey = key;
-      cachedPromise = loadStripe(key);
+      // loadStripe injects js.stripe.com — requires CSP script-src allowlist
+      cachedPromise = loadStripe(key).catch((loadErr) => {
+        console.error(
+          "[stripe-browser] loadStripe rejected (often CSP blocking js.stripe.com)",
+          loadErr
+        );
+        return null;
+      });
     }
 
     const stripe = await cachedPromise;
     if (!stripe) {
+      console.error(
+        "[stripe-browser] loadStripe returned null — check CSP allows https://js.stripe.com and connect-src https://api.stripe.com"
+      );
       return {
         stripe: null,
         error: "Stripe is not configured correctly. Please contact support.",

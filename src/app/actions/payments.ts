@@ -75,21 +75,35 @@ export async function getPaymentMethodSummaryAction(): Promise<{
   error?: string;
 }> {
   try {
+    ensureStripeKeyDiagnosticsLogged();
     const stripeReady = isStripeConfigured();
     if (!stripeReady) {
       return { success: true, stripeReady: false, hasCard: false };
     }
     const user = await requireUser("/portal/profile");
-    const summary = await getDefaultPaymentMethodSummary(user.id);
-    return {
-      success: true,
-      stripeReady: true,
-      hasCard: summary?.hasCard ?? false,
-      brand: summary?.brand ?? null,
-      last4: summary?.last4 ?? null,
-      expMonth: summary?.expMonth ?? null,
-      expYear: summary?.expYear ?? null,
-    };
+    // Never fail the whole action if card lookup errors — form can still add a card
+    try {
+      const summary = await getDefaultPaymentMethodSummary(user.id);
+      return {
+        success: true,
+        stripeReady: true,
+        hasCard: summary?.hasCard ?? false,
+        brand: summary?.brand ?? null,
+        last4: summary?.last4 ?? null,
+        expMonth: summary?.expMonth ?? null,
+        expYear: summary?.expYear ?? null,
+      };
+    } catch (lookupErr) {
+      console.warn(
+        "[payments] card summary lookup failed (form still usable)",
+        lookupErr
+      );
+      return {
+        success: true,
+        stripeReady: true,
+        hasCard: false,
+      };
+    }
   } catch (e) {
     console.error("[payments] getPaymentMethodSummaryAction", e);
     return {

@@ -442,7 +442,10 @@ Use **test keys** first. Card: `4242 4242 4242 4242`, any future expiry, any CVC
 | `STRIPE_SESSION_AMOUNT_CENTS=0` | Auto post-session charge skipped (`no_amount_configured`) |
 | No card on file | Post-session charge fails with clear portal/admin error |
 
-#### Debugging “Invalid API Key provided: pk_live_…”
+#### Debugging “Invalid API Key” or “not configured” on Profile → Payment method
+
+**Keys look valid on `/api/health` but the form still fails?**  
+Often the **Content-Security-Policy** was blocking `https://js.stripe.com` / `https://api.stripe.com`. The app CSP must allow Stripe.js (see `next.config.ts`).
 
 1. **Re-check Vercel env values** (no quotes, no trailing spaces/newlines):
    - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` must start with `pk_live_` or `pk_test_`
@@ -455,9 +458,9 @@ Use **test keys** first. Card: `4242 4242 4242 4242`, any future expiry, any CVC
    - `publishable.looksValid` / `secret.looksValid` should be `true`
    - `modeMatch` must be `true`
 5. Open `/api/stripe/config` — should return `ok: true` and a full `publishableKey`
-6. Browser console logs `[stripe-browser] pk … len=… valid=…` (prefix/length only)
+6. Browser console: `[stripe-browser]` and `[PaymentMethodSection]` logs; CSP errors mention `js.stripe.com` if still blocked
 
-The app sanitizes keys (trim, strip quotes/newlines) and loads Stripe.js via `/api/stripe/config` so truncated/quoted env values fail with a clean support message instead of exposing key fragments.
+The app sanitizes keys (trim, strip quotes/newlines) and loads Stripe.js via `/api/stripe/config`.
 
 ---
 

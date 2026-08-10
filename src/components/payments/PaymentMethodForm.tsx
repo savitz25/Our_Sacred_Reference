@@ -49,9 +49,9 @@ const elementsAppearance: StripeElementsOptions["appearance"] = {
 
 export function PaymentMethodSection() {
   const [loading, setLoading] = useState(true);
-  const [stripeReady, setStripeReady] = useState(false);
   const [stripe, setStripe] = useState<Stripe | null>(null);
   const [configError, setConfigError] = useState<string | null>(null);
+  const [debugHint, setDebugHint] = useState<string | null>(null);
   const [hasCard, setHasCard] = useState(false);
   const [brand, setBrand] = useState<string | null>(null);
   const [last4, setLast4] = useState<string | null>(null);
@@ -63,41 +63,65 @@ export function PaymentMethodSection() {
   const [message, setMessage] = useState<string | null>(null);
 
   const refreshSummary = useCallback(async () => {
-    const summary = await getPaymentMethodSummaryAction();
-    if (!summary.success) {
-      setError(
-        friendlyBrowserStripeError(
-          summary.error ?? "Could not load payment method"
-        )
-      );
-      setLoading(false);
-      return;
+    try {
+      const summary = await getPaymentMethodSummaryAction();
+      if (!summary.success) {
+        // Do not block the form — card list is optional; setup can still work
+        console.warn("[PaymentMethodSection] summary failed", summary.error);
+        setError(
+          friendlyBrowserStripeError(
+            summary.error ?? "Could not load saved card details"
+          )
+        );
+        return;
+      }
+      setHasCard(Boolean(summary.hasCard));
+      setBrand(summary.brand ?? null);
+      setLast4(summary.last4 ?? null);
+      setExpMonth(summary.expMonth ?? null);
+      setExpYear(summary.expYear ?? null);
+    } catch (e) {
+      console.warn("[PaymentMethodSection] summary threw", e);
     }
-    setStripeReady(Boolean(summary.stripeReady));
-    setHasCard(Boolean(summary.hasCard));
-    setBrand(summary.brand ?? null);
-    setLast4(summary.last4 ?? null);
-    setExpMonth(summary.expMonth ?? null);
-    setExpYear(summary.expYear ?? null);
-    setLoading(false);
   }, []);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { stripe: s, error: loadErr } = await loadStripeBrowser();
+      console.info("[PaymentMethodSection] loading Stripe.js…");
+      const result = await loadStripeBrowser();
       if (cancelled) return;
-      if (loadErr || !s) {
+
+      if (result.error || !result.stripe) {
+        const hint = [
+          result.config?.ok === false ? "config_ok=false" : null,
+          result.config?.publishable
+            ? `pk_len=${result.config.publishable.length} pk_valid=${result.config.publishable.looksValid}`
+            : null,
+          result.error ? `err=${result.error.slice(0, 80)}` : null,
+        ]
+          .filter(Boolean)
+          .join(" ");
+        console.error(
+          "[PaymentMethodSection] Stripe.js failed to load",
+          result.error,
+          result.config
+        );
         setConfigError(
-          loadErr ||
+          result.error ||
             "Stripe is not configured correctly. Please contact support."
         );
+        setDebugHint(hint || null);
         setStripe(null);
       } else {
-        setStripe(s);
+        console.info("[PaymentMethodSection] Stripe.js ready");
+        setStripe(result.stripe);
         setConfigError(null);
+        setDebugHint(null);
       }
+
       await refreshSummary();
+      if (!cancelled) setLoading(false);
     })();
     return () => {
       cancelled = true;
@@ -119,6 +143,7 @@ export function PaymentMethodSection() {
     setShowForm(true);
     const result = await createSetupIntentAction();
     if (!result.success || !result.clientSecret) {
+      console.error("[PaymentMethodSection] setup intent failed", result.error);
       setError(
         friendlyBrowserStripeError(
           result.error ?? "Could not start card setup"
@@ -139,7 +164,8 @@ export function PaymentMethodSection() {
     );
   }
 
-  if (!stripeReady || !stripe || configError) {
+  // Only show “not configured” when Stripe.js truly failed — not when summary is empty
+  if (!stripe || configError) {
     return (
       <Card>
         <h2 className="font-serif text-xl text-forest mb-2">Payment method</h2>
@@ -147,6 +173,9 @@ export function PaymentMethodSection() {
           {configError ||
             "Secure card payments will appear here once Stripe is configured correctly. You can still book free discovery sessions. For other payment options (including a direct PayPal link when Michele sends one), she will contact you personally."}
         </p>
+        {process.env.NODE_ENV === "development" && debugHint && (
+          <p className="mt-2 text-xs text-muted font-mono">{debugHint}</p>
+        )}
       </Card>
     );
   }

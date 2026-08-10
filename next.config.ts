@@ -4,7 +4,8 @@ const isProd = process.env.NODE_ENV === "production";
 
 /**
  * Production security headers.
- * CSP allows LiveKit, Supabase, Unsplash, and Resend.
+ * CSP allows LiveKit, Supabase, Unsplash, Resend, and Stripe.js / Payment Element.
+ * @see https://docs.stripe.com/security/guide#content-security-policy
  */
 function securityHeaders() {
   const headers = [
@@ -20,17 +21,20 @@ function securityHeaders() {
       key: "Content-Security-Policy",
       value: [
         "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+        // Stripe.js loads from js.stripe.com
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://*.js.stripe.com",
         "style-src 'self' 'unsafe-inline'",
-        "img-src 'self' data: blob: https://images.unsplash.com https://*.supabase.co",
+        "img-src 'self' data: blob: https://images.unsplash.com https://*.supabase.co https://*.stripe.com",
         "font-src 'self' data:",
-        "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.livekit.cloud wss://*.livekit.cloud https://api.resend.com",
+        // Stripe API + checkout network calls
+        "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.livekit.cloud wss://*.livekit.cloud https://api.resend.com https://api.stripe.com https://*.stripe.com",
         "media-src 'self' blob: https://*.supabase.co",
-        "frame-src 'self'",
+        // Payment Element / 3DS iframes
+        "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://*.stripe.com",
         "worker-src 'self' blob:",
         "object-src 'none'",
         "base-uri 'self'",
-        "form-action 'self'",
+        "form-action 'self' https://hooks.stripe.com",
         "frame-ancestors 'self'",
         ...(isProd ? ["upgrade-insecure-requests"] : []),
       ].join("; "),
